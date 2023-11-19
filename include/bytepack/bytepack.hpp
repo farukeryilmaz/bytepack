@@ -2,6 +2,9 @@
 #define BYTEPACK_HPP
 
 #include <bit>
+#include <string>
+#include <cstring> 
+#include <cstddef>
 
 namespace bytepack {
 
@@ -9,12 +12,18 @@ namespace bytepack {
 	{
 	public:
 		explicit buffer() noexcept
-			: data_{ nullptr }, size_{ 0 }
+			: data_{ nullptr }, size_{ 0 }, ssize_{ 0 }
 		{};
 
-		explicit buffer(const int size) {
-			size_ = size;
-			data_ = new char[static_cast<size_t>(size_)] {};
+		explicit buffer(const std::size_t size) noexcept
+			: data_{ new char[static_cast<std::size_t>(size_)] {} }, size_{ size }
+		{
+			if (size <= static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max())) {
+				ssize_ = static_cast<ptrdiff_t>(size);
+			}
+			else {
+				ssize_ = std::numeric_limits<std::ptrdiff_t>::max();
+			}
 		}
 
 		~buffer() noexcept {
@@ -22,20 +31,22 @@ namespace bytepack {
 		}
 
 		buffer(const buffer& other)
-			: size_{ other.size_ }, data_{ new char[other.size_] } {
+			: data_{ new char[other.size_] }, size_{ other.size_ }, ssize_{ other.ssize_ } {
 			std::memcpy(data_, other.data_, size_);
 		}
 
 		buffer(buffer&& other) noexcept
-			: data_{ other.data_ }, size_{ other.size_ } {
+			: data_{ other.data_ }, size_{ other.size_ }, ssize_{ other.ssize_ } {
 			other.data_ = nullptr;
 			other.size_ = 0;
+			other.ssize_ = 0;
 		}
 
 		buffer& operator=(const buffer& other) {
 			if (this != &other) {
 				delete[] static_cast<char*>(data_);
 				size_ = other.size_;
+				ssize_ = other.ssize_;
 				data_ = new char[size_];
 				std::memcpy(data_, other.data_, size_);
 			}
@@ -44,22 +55,77 @@ namespace bytepack {
 
 		buffer& operator=(buffer&& other) noexcept {
 			if (this != &other) {
-				delete[] data_;
+				delete[] static_cast<char*>(data_);
 				data_ = other.data_;
 				size_ = other.size_;
+				ssize_ = other.ssize_;
 				other.data_ = nullptr;
 				other.size_ = 0;
+				other.ssize_ = 0;
 			}
 			return *this;
 		}
 
-		inline void* data() const { return data_; }
+		void* data() const { return data_; }
 
-		inline int size() const { return size_; }
+		std::size_t size() const { return size_; }
+
+		std::ptrdiff_t ssize() const { return ssize_; }
+
+		operator bool() const
+		{
+			return data_ && size_ > 0;
+		}
 
 	private:
 		void* data_;
-		int size_;
+		std::size_t size_;		// unsigned
+		std::ptrdiff_t ssize_;	// signed
+	};
+
+	class buffer_view {
+	public:
+		buffer_view(const buffer& buf)
+			: data_{ buf.data() }, size_{ buf.size() }, ssize_{ buf.ssize() }
+		{}
+
+		template<typename T, size_t N>
+		buffer_view(T(&array)[N])
+			: data_{ array }, size_{ N * sizeof(T) },
+			ssize_{ get_ssize(N * sizeof(T)) } {}
+
+		template<typename T>
+		buffer_view(T* ptr, size_t size)
+			: data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) },
+			ssize_{ get_ssize(size * sizeof(T)) } {}
+
+		buffer_view(std::string& str)
+			: data_{ str.data() }, size_{ str.size() }, ssize_{ get_ssize(str.size()) } {}
+
+		void* data() const { return data_; }
+
+		std::size_t size() const { return size_; }
+
+		std::ptrdiff_t ssize() const { return size_; }
+
+		operator bool() const
+		{
+			return data_ && size_ > 0;
+		}
+
+	private:
+		std::ptrdiff_t get_ssize(const std::size_t size)
+		{
+			if (size <= static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max())) {
+				return static_cast<ptrdiff_t>(size_);
+			}
+			return std::numeric_limits<std::ptrdiff_t>::max();
+		}
+
+	private:
+		void* data_;
+		std::size_t size_;		// unsigned
+		std::ptrdiff_t ssize_;	// signed
 	};
 
 	template<int BufferSize, std::endian OutputEndian = std::endian::native>
@@ -71,10 +137,12 @@ namespace bytepack {
 		constexpr explicit binary_stream() noexcept
 			: system_endianness_{ std::endian::native }, target_endianness_{ OutputEndian }
 		{
-			buffer_ = buffer(BufferSize);
+			buffer_ = buffer(static_cast<std::size_t>(BufferSize));
 		}
 
-		const bytepack::buffer& data() const { return buffer_; }
+		bytepack::buffer_view view() const {
+			return buffer_;
+		}
 
 	private:
 		std::endian system_endianness_;
