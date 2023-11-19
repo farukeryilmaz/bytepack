@@ -16,7 +16,7 @@ namespace bytepack {
 		{};
 
 		explicit buffer(const std::size_t size) noexcept
-			: data_{ new char[static_cast<std::size_t>(size_)] {} }, size_{ size }
+			: data_{ new char[size] {} }, size_{ size }
 		{
 			if (size <= static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max())) {
 				ssize_ = static_cast<ptrdiff_t>(size);
@@ -72,8 +72,7 @@ namespace bytepack {
 
 		std::ptrdiff_t ssize() const { return ssize_; }
 
-		operator bool() const
-		{
+		operator bool() const {
 			return data_ && size_ > 0;
 		}
 
@@ -83,7 +82,7 @@ namespace bytepack {
 		std::ptrdiff_t ssize_;	// signed
 	};
 
-	class buffer_view {
+	class buffer_view final {
 	public:
 		buffer_view(const buffer& buf)
 			: data_{ buf.data() }, size_{ buf.size() }, ssize_{ buf.ssize() }
@@ -104,12 +103,16 @@ namespace bytepack {
 
 		void* data() const { return data_; }
 
+		template<typename T>
+		T as() const {
+			return static_cast<T>(data_);
+		}
+
 		std::size_t size() const { return size_; }
 
 		std::ptrdiff_t ssize() const { return size_; }
 
-		operator bool() const
-		{
+		operator bool() const {
 			return data_ && size_ > 0;
 		}
 
@@ -129,18 +132,17 @@ namespace bytepack {
 	};
 
 	template<int BufferSize, std::endian OutputEndian = std::endian::native>
-	class binary_stream final
-	{
+	class binary_stream final {
 		static_assert(("Buffer size must be greater than 0 (zero)", BufferSize > 0));
 
 	public:
 		constexpr explicit binary_stream() noexcept
 			: system_endianness_{ std::endian::native }, target_endianness_{ OutputEndian }
 		{
-			buffer_ = buffer(static_cast<std::size_t>(BufferSize));
+			buffer_ = bytepack::buffer(static_cast<std::size_t>(BufferSize));
 		}
 
-		bytepack::buffer_view view() const {
+		bytepack::buffer_view data() const {
 			return buffer_;
 		}
 
