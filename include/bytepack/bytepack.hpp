@@ -103,9 +103,29 @@ namespace bytepack {
 
 		void* data() const { return data_; }
 
+		/**
+		 * Templated method to get data as the specified type.
+		 *
+		 * Warning: This method does not provide type safety and assumes the user knows the correct type of the data.
+		 * Users must ensure that the type T they cast to matches the actual type of data in the buffer.
+		 *
+		 * Note on Alignment:
+		 * The method may cause undefined behavior if the data is not correctly aligned for the requested type.
+		 * For instance, accessing a buffer containing char data as an int* or double* might cause issues.
+		 *
+		 * Note on Error Checking:
+		 * This method does not perform size checks. Users should ensure that the buffer is large enough
+		 * to contain the data of type T. Accessing beyond the bounds of the buffer can lead to undefined behavior.
+		 *
+		 * @tparam T The type to which the buffer's data will be cast.
+		 * @return Pointer to the buffer's data cast to the specified type.
+		 */
 		template<typename T>
-		T as() const {
-			return static_cast<T>(data_);
+		T* as() const {
+			// if (size_ < sizeof(T)) {
+			// 	throw std::runtime_error("Buffer size is too small for this type");
+			// }
+			return static_cast<T*>(data_);
 		}
 
 		std::size_t size() const { return size_; }
