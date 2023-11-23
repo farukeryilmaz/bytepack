@@ -1,3 +1,8 @@
+/**
+ * @file bytepack.hpp
+ * @brief Provides functionality for binary serialization and deserialization.
+ */
+
 #ifndef BYTEPACK_HPP
 #define BYTEPACK_HPP
 
@@ -9,6 +14,14 @@
 
 namespace bytepack {
 
+	/**
+	 * @class buffer
+	 * @brief A class that represents a buffer for holding binary data.
+	 *
+	 * The buffer class encapsulates a pointer to data and its size. It is designed to
+	 * provide an interface to access binary data without owning it. This class does not
+	 * manage the lifetime of the underlying data.
+	 */
 	class buffer {
 	public:
 		template<typename T, std::size_t N>
@@ -74,6 +87,14 @@ namespace bytepack {
 		std::ptrdiff_t ssize_;	// signed
 	};
 
+	/**
+	 * @class binary_stream
+	 * @brief A class for serializing and deserializing binary data with support for different endianness.
+	 * It supports handling both internally allocated buffers and user-supplied buffers.
+	 *
+	 * @tparam TargetEndian The endianness to use for serialization and deserialization.
+	 *                      Defaults to big-endian.
+	 */
 	template<std::endian TargetEndian = std::endian::big>
 	class binary_stream {
 
