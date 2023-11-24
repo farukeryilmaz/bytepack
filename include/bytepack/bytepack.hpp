@@ -27,15 +27,15 @@ namespace bytepack {
 		template<typename T, std::size_t N>
 		buffer(T(&array)[N])
 			: data_{ array }, size_{ N * sizeof(T) },
-			ssize_{ get_ssize(N * sizeof(T)) } {}
+			ssize_{ to_ssize(N * sizeof(T)) } {}
 
 		template<typename T>
 		buffer(T* ptr, std::size_t size)
 			: data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) },
-			ssize_{ get_ssize(size * sizeof(T)) } {}
+			ssize_{ to_ssize(size * sizeof(T)) } {}
 
 		buffer(std::string& str)
-			: data_{ str.data() }, size_{ str.size() }, ssize_{ get_ssize(str.size()) } {}
+			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
 		void* data() const { return data_; }
 
@@ -73,12 +73,10 @@ namespace bytepack {
 		}
 
 	private:
-		std::ptrdiff_t get_ssize(const std::size_t size)
+		std::ptrdiff_t to_ssize(const std::size_t size)
 		{
-			if (size <= static_cast<std::size_t>(std::numeric_limits<std::ptrdiff_t>::max())) {
-				return static_cast<ptrdiff_t>(size_);
-			}
-			return std::numeric_limits<std::ptrdiff_t>::max();
+			using R = std::common_type_t<std::ptrdiff_t, std::make_signed_t<decltype(size)>>;
+			return static_cast<R>(size);
 		}
 
 	private:
