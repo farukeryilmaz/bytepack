@@ -11,6 +11,7 @@
 #include <cstring> 
 #include <cstddef>
 #include <cstdint>
+#include <algorithm>
 
 namespace bytepack {
 
