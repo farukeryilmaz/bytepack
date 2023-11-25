@@ -17,7 +17,7 @@ namespace bytepack {
 
 	/**
 	 * @class buffer
-	 * @brief A class that represents a buffer for holding binary data.
+	 * @brief A mutable class that represents a buffer for holding binary data.
 	 *
 	 * The buffer class encapsulates a pointer to data and its size. It is designed to
 	 * provide an interface to access binary data without owning it. This class does not
@@ -26,16 +26,16 @@ namespace bytepack {
 	class buffer {
 	public:
 		template<typename T, std::size_t N>
-		buffer(T(&array)[N])
+		constexpr buffer(T(&array)[N]) noexcept
 			: data_{ array }, size_{ N * sizeof(T) },
 			ssize_{ to_ssize(N * sizeof(T)) } {}
 
 		template<typename T>
-		buffer(T* ptr, std::size_t size)
+		buffer(T* ptr, std::size_t size) noexcept
 			: data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) },
 			ssize_{ to_ssize(size * sizeof(T)) } {}
 
-		buffer(std::string& str)
+		buffer(std::string& str) noexcept
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
 		/**
@@ -56,21 +56,23 @@ namespace bytepack {
 		 * @return Pointer to the buffer's data cast to the specified type.
 		 */
 		template<typename T>
-		[[nodiscard]] T* as() const noexcept {
+		[[nodiscard]] constexpr T* as() const noexcept {
 			// if (size_ < sizeof(T)) {
 			// 	throw std::runtime_error("Buffer size is too small for this type");
 			// }
 			return static_cast<T*>(data_);
 		}
 
-		[[nodiscard]] std::size_t size() const noexcept { return size_; }
+		[[nodiscard]] constexpr std::size_t size() const noexcept { return size_; }
 
-		[[nodiscard]] std::ptrdiff_t ssize() const noexcept { return size_; }
+		[[nodiscard]] constexpr std::ptrdiff_t ssize() const noexcept { return ssize_; }
 
-		[[nodiscard]] operator bool() const noexcept { return data_ && size_ > 0; }
+		[[nodiscard]] constexpr bool empty() const noexcept { return size_ == 0; }
+
+		[[nodiscard]] constexpr operator bool() const noexcept { return data_ && size_ > 0; }
 
 	private:
-		std::ptrdiff_t to_ssize(const std::size_t size) const noexcept {
+		constexpr std::ptrdiff_t to_ssize(const std::size_t size) const noexcept {
 			using R = std::common_type_t<std::ptrdiff_t, std::make_signed_t<decltype(size)>>;
 			return static_cast<R>(size);
 		}
@@ -82,18 +84,26 @@ namespace bytepack {
 	};
 
 	template<typename T>
-	concept NetworkSerializableBasic = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+	concept NetworkSerializableBasic = std::is_trivially_copyable_v<T>
+		&& std::is_standard_layout_v<T>
 		&& std::is_class_v<T> == false;
+
+	enum class endian {
+		little = std::endian::little,
+		big = std::endian::big,
+		native = std::endian::native,
+		network = std::endian::big
+	};
 
 	/**
 	 * @class binary_stream
 	 * @brief A class for serializing and deserializing binary data with support for different endianness.
 	 * It supports handling both internally allocated buffers and user-supplied buffers.
 	 *
-	 * @tparam TargetEndian The endianness to use for serialization and deserialization.
-	 *                      Defaults to big-endian.
+	 * @tparam BufferEndian The endianness to use for serialization and deserialization.
+	 *                      Defaults to network byte order (big-endian).
 	 */
-	template<std::endian TargetEndian = std::endian::big>
+	template<bytepack::endian BufferEndian = bytepack::endian::network>
 	class binary_stream {
 
 	public:
@@ -130,7 +140,6 @@ namespace bytepack {
 			return { buffer_.as<std::uint8_t>(), current_serialize_index_ };
 		}
 
-		// Basic types
 		template<NetworkSerializableBasic T>
 		bool write(const T& value) noexcept {
 			if (buffer_.size() < (current_serialize_index_ + sizeof(T))) {
@@ -139,7 +148,7 @@ namespace bytepack {
 
 			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &value, sizeof(T));
 
-			if constexpr (TargetEndian != std::endian::native && sizeof(T) > 1) {
+			if constexpr (BufferEndian != bytepack::endian::native && sizeof(T) > 1) {
 				std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
 					buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
 			}
