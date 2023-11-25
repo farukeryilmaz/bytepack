@@ -158,6 +158,33 @@ namespace bytepack {
 			return true;
 		}
 
+		template<typename SizeType = std::size_t>
+		bool write(const std::string& value) noexcept {
+			static_assert(std::is_integral_v<SizeType>, "SizeType must be an integral type!");
+
+			const SizeType str_length = static_cast<SizeType>(value.length());
+			if ((std::is_signed_v<SizeType> && str_length < 0)
+				|| static_cast<std::size_t>(str_length) != value.length()) {
+				// Overflow or incorrect size type
+				return false;
+			}
+
+			if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + str_length)) {
+				// String data and its length field cannot fit in the remaining buffer space
+				return false;
+			}
+
+			// Write string length field first (before the string data)
+			if (write(str_length) == false) {
+				return false;
+			}
+
+			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value.data(), value.length());
+			current_serialize_index_ += value.length();
+
+			return true;
+		}
+
 	private:
 		bytepack::buffer buffer_;
 
