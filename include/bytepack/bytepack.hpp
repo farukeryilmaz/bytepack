@@ -55,24 +55,21 @@ namespace bytepack {
 		 * @return Pointer to the buffer's data cast to the specified type.
 		 */
 		template<typename T>
-		T* as() const {
+		[[nodiscard]] T* as() const noexcept {
 			// if (size_ < sizeof(T)) {
 			// 	throw std::runtime_error("Buffer size is too small for this type");
 			// }
 			return static_cast<T*>(data_);
 		}
 
-		std::size_t size() const { return size_; }
+		[[nodiscard]] std::size_t size() const noexcept { return size_; }
 
-		std::ptrdiff_t ssize() const { return size_; }
+		[[nodiscard]] std::ptrdiff_t ssize() const noexcept { return size_; }
 
-		operator bool() const {
-			return data_ && size_ > 0;
-		}
+		[[nodiscard]] operator bool() const noexcept { return data_ && size_ > 0; }
 
 	private:
-		std::ptrdiff_t to_ssize(const std::size_t size)
-		{
+		std::ptrdiff_t to_ssize(const std::size_t size) const noexcept {
 			using R = std::common_type_t<std::ptrdiff_t, std::make_signed_t<decltype(size)>>;
 			return static_cast<R>(size);
 		}
@@ -122,19 +119,19 @@ namespace bytepack {
 		binary_stream(binary_stream&&) = delete;
 		binary_stream& operator=(binary_stream&&) = delete;
 
-		constexpr void reset()
+		constexpr void reset() noexcept
 		{
 			current_serialize_index_ = 0;
 			current_deserialize_index_ = 0;
 		}
 
-		bytepack::buffer data() const {
+		[[nodiscard]] bytepack::buffer data() const noexcept {
 			return { buffer_.as<std::uint8_t>(), current_serialize_index_ };
 		}
 
 		// Basic types
 		template<NetworkSerializableBasic T>
-		bool write(const T& value) {
+		bool write(const T& value) noexcept {
 			if (buffer_.size() < (current_serialize_index_ + sizeof(T))) {
 				return false;
 			}
