@@ -37,8 +37,6 @@ namespace bytepack {
 		buffer(std::string& str)
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
-		void* data() const { return data_; }
-
 		/**
 		 * Templated method to get data as the specified type.
 		 *
@@ -81,8 +79,8 @@ namespace bytepack {
 
 	private:
 		void* data_;
-		std::size_t size_;		// unsigned
-		std::ptrdiff_t ssize_;	// signed
+		std::size_t size_;
+		std::ptrdiff_t ssize_; // signed
 	};
 
 	template<typename T>
@@ -131,12 +129,25 @@ namespace bytepack {
 		}
 
 		bytepack::buffer data() const {
-			return { static_cast<std::uint8_t*>(buffer_.data()), current_serialize_index_ };
+			return { buffer_.as<std::uint8_t>(), current_serialize_index_ };
 		}
 
 		// Basic types
 		template<NetworkSerializableBasic T>
 		bool write(const T& value) {
+			if (buffer_.size() < (current_serialize_index_ + sizeof(T))) {
+				return false;
+			}
+
+			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &value, sizeof(T));
+
+			if constexpr (TargetEndian != std::endian::native && sizeof(T) > 1) {
+				std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
+					buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
+			}
+
+			current_serialize_index_ += sizeof(T);
+
 			return true;
 		}
 
