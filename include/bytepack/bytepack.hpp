@@ -85,6 +85,10 @@ namespace bytepack {
 		std::ptrdiff_t ssize_;	// signed
 	};
 
+	template<typename T>
+	concept NetworkSerializableBasic = std::is_trivially_copyable_v<T> && std::is_standard_layout_v<T>
+		&& std::is_class_v<T> == false;
+
 	/**
 	 * @class binary_stream
 	 * @brief A class for serializing and deserializing binary data with support for different endianness.
@@ -98,15 +102,15 @@ namespace bytepack {
 
 	public:
 		explicit binary_stream(const std::size_t buffer_size) noexcept
-			: system_endianness_{ std::endian::native }, target_endianness_{ TargetEndian },
-			buffer_{ new std::uint8_t[buffer_size]{}, buffer_size }, owns_buffer_{ true }
+			: buffer_{ new std::uint8_t[buffer_size]{}, buffer_size }, owns_buffer_{ true },
+			current_serialize_index_{ 0 }, current_deserialize_index_{ 0 }
 		{
 			// TODO: consider lazy initialization (lazy-load) for `buffer_`. It might come in useful in some cases.
 		}
 
 		explicit binary_stream(const bytepack::buffer& buffer) noexcept
-			: system_endianness_{ std::endian::native }, target_endianness_{ TargetEndian },
-			buffer_{ buffer }, owns_buffer_{ false }
+			: buffer_{ buffer }, owns_buffer_{ false }, current_serialize_index_{ 0 },
+			current_deserialize_index_{ 0 }
 		{}
 
 		~binary_stream() noexcept {
@@ -115,26 +119,38 @@ namespace bytepack {
 			}
 		}
 
-		bytepack::buffer data() const {
-			return buffer_;
-		}
-
 		binary_stream(const binary_stream&) = delete;
 		binary_stream& operator=(const binary_stream&) = delete;
 		binary_stream(binary_stream&&) = delete;
 		binary_stream& operator=(binary_stream&&) = delete;
 
-	private:
-		std::endian system_endianness_;
-		std::endian target_endianness_;
+		constexpr void reset()
+		{
+			current_serialize_index_ = 0;
+			current_deserialize_index_ = 0;
+		}
 
+		bytepack::buffer data() const {
+			return { static_cast<std::uint8_t*>(buffer_.data()), current_serialize_index_ };
+		}
+
+		// Basic types
+		template<NetworkSerializableBasic T>
+		bool write(const T& value) {
+			return true;
+		}
+
+	private:
 		bytepack::buffer buffer_;
 
 		// Flag to indicate buffer ownership
 		// TODO: Consider alternative ownership models and design to handle external buffers
 		bool owns_buffer_;
+
+		std::size_t current_serialize_index_;
+		std::size_t current_deserialize_index_;
 	};
 
-}
+} // namespace bytepack
 
 #endif // BYTEPACK_HPP
