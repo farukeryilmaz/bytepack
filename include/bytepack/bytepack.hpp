@@ -8,10 +8,12 @@
 
 #include <bit>
 #include <string>
+#include <string_view>
 #include <cstring> 
 #include <cstddef>
 #include <cstdint>
 #include <algorithm>
+#include <concepts>
 
 namespace bytepack {
 
@@ -88,6 +90,12 @@ namespace bytepack {
 		&& std::is_standard_layout_v<T>
 		&& std::is_class_v<T> == false;
 
+	template<typename T>
+	concept SerializableString = std::same_as<T, std::string> || std::same_as<T, std::string_view>;
+
+	template<typename T>
+	concept IntegralType = std::is_integral_v<T>;
+
 	enum class endian {
 		little = std::endian::little,
 		big = std::endian::big,
@@ -158,10 +166,8 @@ namespace bytepack {
 			return true;
 		}
 
-		template<typename SizeType = std::size_t>
-		bool write(const std::string& value) noexcept {
-			static_assert(std::is_integral_v<SizeType>, "SizeType must be an integral type!");
-
+		template<IntegralType SizeType = std::size_t, SerializableString StringType>
+		bool write(const StringType& value) noexcept {
 			const SizeType str_length = static_cast<SizeType>(value.length());
 			if ((std::is_signed_v<SizeType> && str_length < 0)
 				|| static_cast<std::size_t>(str_length) != value.length()) {
@@ -184,6 +190,13 @@ namespace bytepack {
 
 			return true;
 		}
+
+		// TODO: Currently, the serialization of std::wstring and std::wstring_view is not supported
+		// due to the variation in wchar_t size across platforms (e.g., 2 bytes on Windows, 4 bytes on Unix/Linux).
+		// A future enhancement could involve standardizing on a character encoding like UTF-8 for network
+		// transmission and handling the conversion from/to std::wstring while considering platform differences.
+		// This would ensure consistent behavior across different systems and avoid issues with wchar_t size discrepancies.
+		// For now, users can use std::string and std::string_view for string serialization.
 
 	private:
 		bytepack::buffer_view buffer_;
