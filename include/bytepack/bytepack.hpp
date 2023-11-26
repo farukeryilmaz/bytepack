@@ -96,22 +96,15 @@ namespace bytepack {
 	template<typename T>
 	concept IntegralType = std::is_integral_v<T>;
 
-	enum class endian {
-		little = std::endian::little,
-		big = std::endian::big,
-		native = std::endian::native,
-		network = std::endian::big
-	};
-
 	/**
 	 * @class binary_stream
 	 * @brief A class for serializing and deserializing binary data with support for different endianness.
 	 * It supports handling both internally allocated buffers and user-supplied buffers.
 	 *
 	 * @tparam BufferEndian The endianness to use for serialization and deserialization.
-	 *                      Defaults to network byte order (big-endian).
+	 *                      Defaults to big-endian (network byte order).
 	 */
-	template<bytepack::endian BufferEndian = bytepack::endian::network>
+	template<std::endian BufferEndian = std::endian::big>
 	class binary_stream {
 
 	public:
@@ -156,7 +149,7 @@ namespace bytepack {
 
 			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &value, sizeof(T));
 
-			if constexpr (BufferEndian != bytepack::endian::native && sizeof(T) > 1) {
+			if constexpr (BufferEndian != std::endian::native && sizeof(T) > 1) {
 				std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
 					buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
 			}
