@@ -18,10 +18,10 @@
 namespace bytepack {
 
 	/**
-	 * @class buffer
+	 * @class buffer_view
 	 * @brief A mutable class that represents a buffer for holding binary data.
 	 *
-	 * The buffer class encapsulates a pointer to data and its size. It is designed to
+	 * The buffer_view class encapsulates a pointer to data and its size. It is designed to
 	 * provide an interface to access binary data without owning it. This class does not
 	 * manage the lifetime of the underlying data.
 	 */
@@ -69,7 +69,7 @@ namespace bytepack {
 
 		[[nodiscard]] constexpr std::ptrdiff_t ssize() const noexcept { return ssize_; }
 
-		[[nodiscard]] constexpr bool empty() const noexcept { return size_ == 0; }
+		[[nodiscard]] constexpr bool is_empty() const noexcept { return size_ == 0; }
 
 		[[nodiscard]] constexpr operator bool() const noexcept { return data_ && size_ > 0; }
 
@@ -183,6 +183,26 @@ namespace bytepack {
 
 			return true;
 		}
+
+		// TODO: Implement Flexible String Serialization Strategies
+		//
+		// Enhancement Scope:
+		// The current string serialization approach in binary_stream writes the string length as metadata
+		// before the actual data. This design is optimal for dynamic-length strings but can be suboptimal
+		// or unnecessary in certain use cases. New modes aim to introduce additional string serialization
+		// strategies to accommodate different use cases and improve the library's applicability to a broader
+		// range of use cases.
+		//
+		// New Modes:
+		// 1. Null-Terminated Strings: In scenarios where strings are conventionally terminated with a null
+		//    character, it's beneficial to offer a serialization mode that appends a null terminator instead of
+		//    prepending string length metadata. This approach is common in C-style string handling and can
+		//    facilitate interoperability with such systems.
+		//
+		// 2. Fixed-Length Strings: Certain protocols or standards (e.g., Interface Control Documents (ICDs),
+		//    Interface Definition Documents (IDDs) may mandate fixed-length string fields. In these cases,
+		//    string size metadata is redundant. A fixed-size serialization mode should serialize strings to
+		//    a predetermined, fixed length, applying padding or truncation as necessary.
 
 		// TODO: Currently, the serialization of std::wstring and std::wstring_view is not supported
 		// due to the variation in wchar_t size across platforms (e.g., 2 bytes on Windows, 4 bytes on Unix/Linux).
