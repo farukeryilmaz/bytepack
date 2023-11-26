@@ -23,19 +23,19 @@ namespace bytepack {
 	 * provide an interface to access binary data without owning it. This class does not
 	 * manage the lifetime of the underlying data.
 	 */
-	class buffer {
+	class buffer_view {
 	public:
 		template<typename T, std::size_t N>
-		constexpr buffer(T(&array)[N]) noexcept
+		constexpr buffer_view(T(&array)[N]) noexcept
 			: data_{ array }, size_{ N * sizeof(T) },
 			ssize_{ to_ssize(N * sizeof(T)) } {}
 
 		template<typename T>
-		buffer(T* ptr, std::size_t size) noexcept
+		buffer_view(T* ptr, std::size_t size) noexcept
 			: data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) },
 			ssize_{ to_ssize(size * sizeof(T)) } {}
 
-		buffer(std::string& str) noexcept
+		buffer_view(std::string& str) noexcept
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
 		/**
@@ -114,7 +114,7 @@ namespace bytepack {
 			// TODO: consider lazy initialization (lazy-load) for `buffer_`. It might come in useful in some cases.
 		}
 
-		explicit binary_stream(const bytepack::buffer& buffer) noexcept
+		explicit binary_stream(const bytepack::buffer_view& buffer) noexcept
 			: buffer_{ buffer }, owns_buffer_{ false }, current_serialize_index_{ 0 },
 			current_deserialize_index_{ 0 }
 		{}
@@ -136,7 +136,7 @@ namespace bytepack {
 			current_deserialize_index_ = 0;
 		}
 
-		[[nodiscard]] bytepack::buffer data() const noexcept {
+		[[nodiscard]] bytepack::buffer_view data() const noexcept {
 			return { buffer_.as<std::uint8_t>(), current_serialize_index_ };
 		}
 
@@ -186,7 +186,7 @@ namespace bytepack {
 		}
 
 	private:
-		bytepack::buffer buffer_;
+		bytepack::buffer_view buffer_;
 
 		// Flag to indicate buffer ownership
 		// TODO: Consider alternative ownership models and design to handle external buffers
