@@ -232,6 +232,40 @@ namespace bytepack {
 			return true;
 		}
 
+		template<IntegralType SizeType = std::size_t>
+		bool read(std::string& value) noexcept {
+			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType))) {
+				return false;
+			}
+
+			// Temporarily read string length without incrementing deserialize index
+			SizeType str_length{};
+			std::memcpy(&str_length, buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(SizeType));
+
+			// Handle endianness for the string length
+			if constexpr (BufferEndian != std::endian::native && sizeof(SizeType) > 1) {
+				std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&str_length),
+					reinterpret_cast<std::uint8_t*>(&str_length) + sizeof(SizeType));
+			}
+
+			// String length cannot be negative, and zero-length is also unusual so it's treated as an error.
+			if (str_length < 1) {
+				return false;
+			}
+
+			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType) + str_length)) {
+				return false;
+			}
+
+			// Alternative approach in case of performance issues: first resize the string to the required size
+			// using `value.resize(str_length)` and then copy the string data using `std::memcpy(value.data(), ...)`
+			value.assign(buffer_.as<char>() + sizeof(SizeType) + current_deserialize_index_, str_length);
+
+			current_deserialize_index_ += sizeof(SizeType) + str_length;
+
+			return true;
+		}
+
 	private:
 		bytepack::buffer_view buffer_;
 
