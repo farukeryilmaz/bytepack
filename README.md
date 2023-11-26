@@ -24,6 +24,66 @@ Simply clone the repository or download the `bytepack.hpp` file and include it i
 ```bash
 git clone https://github.com/farukeryilmaz/bytepack.git
 ```
+Include the library in your C++ project:
+```cpp
+#include "bytepack/bytepack.hpp"
+```
+
+## Usage Example
+```cpp
+struct GPSData {
+	std::uint32_t timestamp;      // UNIX timestamp
+	double latitude;              // Latitude in degrees
+	double longitude;             // Longitude in degrees
+	float altitude;               // Altitude in meters
+	std::uint16_t numSatellites;  // Number of satellites in view
+	char deviceID[16];            // Device ID
+
+	void serialize(bytepack::binary_stream<>& stream) const
+	{
+		stream.write(timestamp);
+		stream.write(latitude);
+		stream.write(longitude);
+		stream.write(altitude);
+		stream.write(numSatellites);
+		stream.write(deviceID);
+	}
+
+	void deserialize(bytepack::binary_stream<>& stream)
+	{
+		stream.read(timestamp);
+		stream.read(latitude);
+		stream.read(longitude);
+		stream.read(altitude);
+		stream.read(numSatellites);
+		stream.read(deviceID);
+	}
+};
+
+GPSData gpsData{ 1701037875, 36.8805426411, 30.6692287448, 123.456f, 12, "GPS-DEVICE-1" };
+
+// default endian is big-endian (network byte order). you can change the endian by passing
+// the endian type as a template parameter, e.g. bytepack::binary_stream<std::endian::little>
+bytepack::binary_stream serializationStream(1024);
+gpsData.serialize(serializationStream);
+
+bytepack::buffer_view buffer = serializationStream.data();
+
+// e.g. char* dataPtr = buffer.as<char>();
+std::uint8_t* dataPtr = buffer.as<std::uint8_t>();
+std::size_t dataSize = buffer.size();
+// you can send the dataPtr to a socket, write it to a file, etc.
+
+// You do not have to use another binary_stream (`deserializationStream`) to deserialize
+// the data. You can deserialize the data directly from the stream (`serializationStream`)
+// since you already serialized the data into it. However, if you want to deserialize
+// the data coming from a socket etc., you can use another binary_stream to deserialize
+// the data like below. e.g. `bytepack::buffer_view buffer(dataPtr, dataSize);`
+bytepack::binary_stream deserializationStream(buffer);
+
+GPSData gpsData_{};
+gpsData_.deserialize(deserializationStream);
+```
 
 ## Design Philosophy
 BytePack doesn't enforce any standardization or versioning in serialization, giving you the freedom to define your data structures and protocols. This approach is ideal when interfacing with systems where data formats and protocols are defined externally, such as in Interface Control Documents (ICDs).
