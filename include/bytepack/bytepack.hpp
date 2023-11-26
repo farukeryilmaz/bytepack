@@ -131,8 +131,7 @@ namespace bytepack {
 		binary_stream(binary_stream&&) = delete;
 		binary_stream& operator=(binary_stream&&) = delete;
 
-		constexpr void reset() noexcept
-		{
+		constexpr void reset() noexcept {
 			current_serialize_index_ = 0;
 			current_deserialize_index_ = 0;
 		}
@@ -150,6 +149,10 @@ namespace bytepack {
 			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &value, sizeof(T));
 
 			if constexpr (BufferEndian != std::endian::native && sizeof(T) > 1) {
+				// TODO: htonl/htons/ntohl/ntohs performs better for endianness conversion. However, it
+				// requires platform-specific headers. It is possible to implement hton/ntoh like functions
+				// in the library in a platform-independent way using bit shifts.
+				// Benchmark link: https://quick-bench.com/q/va-kzUk1J1BfvSgR05Z1YPnrJhg
 				std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
 					buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
 			}
@@ -259,7 +262,8 @@ namespace bytepack {
 
 			// Alternative approach in case of performance issues: first resize the string to the required size
 			// using `value.resize(str_length)` and then copy the string data using `std::memcpy(value.data(), ...)`
-			value.assign(buffer_.as<char>() + sizeof(SizeType) + current_deserialize_index_, str_length);
+			value.assign(buffer_.as<char>() + sizeof(SizeType) + current_deserialize_index_,
+				static_cast<std::size_t>(str_length));
 
 			current_deserialize_index_ += sizeof(SizeType) + str_length;
 
