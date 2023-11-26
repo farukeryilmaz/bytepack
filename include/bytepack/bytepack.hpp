@@ -211,6 +211,27 @@ namespace bytepack {
 		// This would ensure consistent behavior across different systems and avoid issues with wchar_t size discrepancies.
 		// For now, users can use std::string and std::string_view for string serialization.
 
+		template<NetworkSerializableBasic T>
+		bool read(T& value) noexcept {
+			if (buffer_.size() < (current_deserialize_index_ + sizeof(T))) {
+				return false;
+			}
+
+			std::memcpy(&value, buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
+
+			if constexpr (BufferEndian != std::endian::native && sizeof(T) > 1) {
+				// Using reinterpret_cast to treat 'value' as an array of bytes is safe here because:
+				// The `NetworkSerializableBasic` concept ensures 'T' is a non-class, fundamental type, making
+				// it trivially copyable and ensuring a consistent, predictable memory layout across systems.
+				std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&value),
+					reinterpret_cast<std::uint8_t*>(&value) + sizeof(T));
+			}
+
+			current_deserialize_index_ += sizeof(T);
+
+			return true;
+		}
+
 	private:
 		bytepack::buffer_view buffer_;
 
