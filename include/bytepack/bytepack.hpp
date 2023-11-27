@@ -1,6 +1,16 @@
+/*
+* Copyright (c) 2023 Faruk Eryilmaz
+*
+* Contact: faruk [at] farukeryilmaz [dot] com
+* GitHub: https://github.com/farukeryilmaz/bytepack
+*
+* Licensed under the MIT License. See accompanying LICENSE file
+* or copy at https://opensource.org/licenses/MIT
+*/
+
 /**
  * @file bytepack.hpp
- * @brief Provides functionality for binary serialization and deserialization.
+ * @brief Simple C++ binary serialization library with endianness control, avoiding custom encoding.
  */
 
 #ifndef BYTEPACK_HPP
