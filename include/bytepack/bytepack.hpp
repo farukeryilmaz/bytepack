@@ -1,4 +1,6 @@
 /*
+* MIT License
+*
 * Copyright (c) 2023 Faruk Eryilmaz
 *
 * Contact: faruk [at] farukeryilmaz [dot] com
