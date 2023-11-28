@@ -47,7 +47,7 @@ GPSData gpsData{ 1701037875, 36.8805426411, 30.6692287448, 123.456f, 12, "GPS-DE
 
 // default endian is big-endian (network byte order). you can change the endianness by passing
 // the endian type as a template parameter, e.g. `bytepack::binary_stream<std::endian::little>`
-bytepack::binary_stream serializationStream(1024);
+bytepack::binary_stream serializationStream(1024); // 1024 is the buffer size in bytes
 gpsData.serialize(serializationStream);
 
 bytepack::buffer_view buffer = serializationStream.data();
