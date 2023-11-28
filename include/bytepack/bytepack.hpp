@@ -56,11 +56,6 @@ namespace bytepack {
 		 * Templated method to get data as the specified type.
 		 *
 		 * Warning: This method does not provide type safety and assumes the user knows the correct type of the data.
-		 * Users must ensure that the type T they cast to matches the actual type of data in the buffer.
-		 *
-		 * Note on Alignment:
-		 * The method may cause undefined behavior if the data is not correctly aligned for the requested type.
-		 * For instance, accessing a buffer containing char data as an int* or double* might cause issues.
 		 *
 		 * Note on Error Checking:
 		 * This method does not perform size checks. Users should ensure that the buffer is large enough
@@ -71,9 +66,6 @@ namespace bytepack {
 		 */
 		template<typename T>
 		[[nodiscard]] constexpr T* as() const noexcept {
-			// if (size_ < sizeof(T)) {
-			// 	throw std::runtime_error("Buffer size is too small for this type");
-			// }
 			return static_cast<T*>(data_);
 		}
 
@@ -181,8 +173,8 @@ namespace bytepack {
 		template<NetworkSerializableBasicArray T>
 		bool write(const T& value) noexcept {
 			using ElementType = std::remove_extent_t<T>;
-			constexpr size_t elementSize = sizeof(ElementType);
-			constexpr size_t numElements = sizeof(T) / elementSize;
+			constexpr std::size_t elementSize = sizeof(ElementType);
+			constexpr std::size_t numElements = sizeof(T) / elementSize;
 
 			// Check if there is enough space in the buffer for the entire array
 			if (buffer_.size() < (current_serialize_index_ + sizeof(T))) {
@@ -284,8 +276,8 @@ namespace bytepack {
 		template<NetworkSerializableBasicArray T>
 		bool read(T& value) noexcept {
 			using ElementType = std::remove_extent_t<T>;
-			constexpr size_t elementSize = sizeof(ElementType);
-			constexpr size_t numElements = sizeof(T) / elementSize;
+			constexpr std::size_t elementSize = sizeof(ElementType);
+			constexpr std::size_t numElements = sizeof(T) / elementSize;
 
 			// Check if there is enough data in the buffer to read the entire array
 			if (buffer_.size() < (current_deserialize_index_ + sizeof(T))) {
