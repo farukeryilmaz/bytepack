@@ -1,8 +1,13 @@
-# Add test executable
-add_executable(test_bytepack test_bytepack.cpp)
+add_executable(BytePackTests catch2_main.cpp)
 
-# Include the Catch2 v2.x header
-target_include_directories(test_bytepack PRIVATE ${PROJECT_SOURCE_DIR}/extern/Catch2/single_include)
+target_include_directories(BytePackTests PRIVATE ${PROJECT_SOURCE_DIR}/extern/Catch2/single_include)
 
-# Link against bytepack library
-target_link_libraries(test_bytepack PRIVATE bytepack)
+target_link_libraries(BytePackTests PRIVATE bytepack)
+
+target_sources(BytePackTests 
+    PRIVATE
+        fundamental_type_test.cpp
+        string_test.cpp
+        basic_array_type_test.cpp
+        usecase1_test.cpp
+)
