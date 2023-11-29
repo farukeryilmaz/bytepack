@@ -10,7 +10,7 @@ _While it offers several features and benefits, it's important to note that the 
 - **No Exceptions:** Ensures stable and predictable error handling.
 - **Flexible Buffer Management:** Utilizes a non-owning mutable buffer concept for efficient memory management.
 - **Easy to Debug and Customize:** Clear and concise codebase makes debugging easy. Adaptable for customization to address specific requirements.
-- **Cross-platform compatible:** Tested on `GNU+Linux` and `Windows`.
+- **Cross-platform compatible:** Tested on `GNU/Linux` and `Windows`.
 
 ## Usage Example
 This is just one example among many possible scenarios demonstrating the diverse applications and versatility of `BytePack`. It provides a glimpse into the project's potential, encouraging users to explore a wide range of other use cases.
@@ -48,13 +48,14 @@ GPSData gpsData{ 1701037875, 36.8805426411, 30.6692287448, 123.456f, 12, "GPS-DE
 // default endian is big-endian (network byte order). you can change the endianness by passing
 // the endian type as a template parameter, e.g. `bytepack::binary_stream<std::endian::little>`
 bytepack::binary_stream serializationStream(1024); // 1024 is the buffer size in bytes
+
 gpsData.serialize(serializationStream);
 
 bytepack::buffer_view buffer = serializationStream.data();
 
 // e.g. char* dataPtr = buffer.as<char>();
 std::uint8_t* dataPtr = buffer.as<std::uint8_t>();
-std::size_t dataSize = buffer.size();
+std::size_t dataSize = buffer.size(); // returns the serialized data size in bytes
 // you can send the dataPtr to a socket, write it to a file, etc.
 
 // If you want to deserialize the data coming from a socket etc.,
@@ -69,7 +70,7 @@ gpsData_.deserialize(deserializationStream);
 ## Requirements
 - Implemented in `C++20` (uses concepts)
 - `CMake 3.12` or higher.
-- **GNU+Linux:** `GCC 10.1` or higher, `Clang 11` or higher.
+- **GNU/Linux:** `GCC 10.1` or higher, `Clang 11` or higher.
 - **Windows:** `Visual Studio 2019 version 16.11.14` or higher.
 - **macOS:** _Not officially tested. Feedback and contributions from macOS users are welcome._
 
@@ -78,6 +79,12 @@ Simply clone the repository or download the `bytepack.hpp` file and include it i
 ```bash
 git clone https://github.com/farukeryilmaz/bytepack.git
 ```
+If you want to clone the repository with submodules (Catch2 v2.x), use the following command:
+```bash
+git clone --recursive https://github.com/farukeryilmaz/bytepack.git
+```
+If the repository was cloned non-recursively previously, use `git submodule update --init` to clone the necessary submodules.
+
 Include the library in your C++ project:
 ```cpp
 #include "bytepack/bytepack.hpp"
