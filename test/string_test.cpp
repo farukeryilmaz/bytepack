@@ -39,7 +39,7 @@ TEST_CASE("String and string view (little-endian)")
 	bytepack::binary_stream<std::endian::little> bstream(64);
 
 	bstream.write(str);
-	bstream.write<unsigned long int>(str2);
+	bstream.write<std::uint32_t>(str2);
 
 	std::string str_{};
 	std::string str2_{}; // string_view cannot be read into directly (it's a reference)
@@ -48,7 +48,7 @@ TEST_CASE("String and string view (little-endian)")
 	bytepack::binary_stream<std::endian::little> bstream_(buffer);
 
 	bstream_.read(str_);
-	bstream_.read<unsigned long int>(str2_);
+	bstream_.read<std::uint32_t>(str2_);
 
 	// 8 bytes for the size of the string, 15 bytes for the string itself
 	// 4 bytes for the custom size of the string_view, 22 bytes for the string_view itself

@@ -41,7 +41,10 @@ TEST_CASE("Basic array types (big-endian)")
 
 	REQUIRE(std::equal(std::begin(intArr), std::end(intArr), std::begin(intArr_)));
 	REQUIRE(num == Approx(num_).epsilon(1e-5));
-	REQUIRE_THAT(charArr, Catch::Matchers::Equals(charArr_));
+
+	for (size_t i = 0; i < 28; i++) {
+		REQUIRE(charArr[i] == charArr_[i]);
+	}
 }
 
 TEST_CASE("Basic array types (little-endian)")
@@ -76,5 +79,8 @@ TEST_CASE("Basic array types (little-endian)")
 	REQUIRE(228 == stream.data().size());
 
 	REQUIRE(std::equal(std::begin(intArr), std::end(intArr), std::begin(intArr_)));
-	REQUIRE_THAT(charArr, Catch::Matchers::Equals(charArr_));
+
+	for (size_t i = 0; i < 28; i++) {
+		REQUIRE(charArr[i] == charArr_[i]);
+	}
 }
