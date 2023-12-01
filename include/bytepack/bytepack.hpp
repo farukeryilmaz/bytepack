@@ -209,7 +209,7 @@ namespace bytepack {
 				return false;
 			}
 
-			if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + str_length)) {
+			if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
 				// String data and its length field cannot fit in the remaining buffer space
 				return false;
 			}
@@ -324,7 +324,7 @@ namespace bytepack {
 				return false;
 			}
 
-			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType) + str_length)) {
+			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
 				return false;
 			}
 
@@ -333,7 +333,7 @@ namespace bytepack {
 			value.assign(buffer_.as<char>() + sizeof(SizeType) + current_deserialize_index_,
 				static_cast<std::size_t>(str_length));
 
-			current_deserialize_index_ += sizeof(SizeType) + str_length;
+			current_deserialize_index_ += sizeof(SizeType) + static_cast<std::size_t>(str_length);
 
 			return true;
 		}
