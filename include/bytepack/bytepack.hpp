@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <algorithm>
 #include <concepts>
+#include <optional>
 
 namespace bytepack {
 
@@ -200,6 +201,52 @@ namespace bytepack {
 			return true;
 		}
 
+		template<IntegralType SizeType = std::size_t, typename T> requires NetworkSerializableBasic<T>
+		bool write(const std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept {
+			const std::size_t size = num_elements.value_or(vector.size());
+			// if `num_elements` is not specified, the std::vector size is serialized as metadata before the vector data
+			if (num_elements == std::nullopt) {
+				if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + size * sizeof(T))) {
+					// Vector size field and its elements cannot fit in the remaining buffer space
+					return false;
+				}
+
+				const SizeType size_custom = static_cast<SizeType>(size);
+				if ((std::is_signed_v<SizeType> && size_custom < 0)
+					|| static_cast<std::size_t>(size_custom) != size) {
+					// Overflow or incorrect size type
+					return false;
+				}
+
+				// Write vector size field first (before the vector data)
+				if (write(size_custom) == false) {
+					return false;
+				}
+			}
+			else {
+				if (vector.size() < size || buffer_.size() < (current_serialize_index_ + size * sizeof(T))) {
+					return false;
+				}
+			}
+
+			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
+				// If the buffer and system endianness match, or each element is one byte,
+				// endianness is irrelevant, so memcpy the entire array at once
+				std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, vector.data(), size * sizeof(T));
+				current_serialize_index_ += size * sizeof(T);
+			}
+			else { // For multi-byte types with differing endianness, handle each element individually
+				for (std::size_t i = 0; i < size; ++i) {
+					std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &vector[i], sizeof(T));
+					std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
+						buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
+					current_serialize_index_ += sizeof(T);
+				}
+			}
+			return true;
+		}
+
+
 		template<IntegralType SizeType = std::size_t, SerializableString StringType>
 		bool write(const StringType& value) noexcept {
 			const SizeType str_length = static_cast<SizeType>(value.length());
@@ -300,6 +347,44 @@ namespace bytepack {
 				}
 			}
 
+			return true;
+		}
+
+		template<IntegralType SizeType = std::size_t, typename T> requires NetworkSerializableBasic<T>
+		bool read(std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept {
+			std::size_t size{};
+			// If `num_elements` is not specified, the std::vector size is deserialized from the metadata before the vector data
+			if (num_elements == std::nullopt) {
+				SizeType size_custom{};
+				if (read(size_custom) == false) {
+					return false;
+				}
+				size = static_cast<std::size_t>(size_custom);
+			}
+			else {
+				size = num_elements.value();
+			}
+
+			if (buffer_.size() < (current_deserialize_index_ + size * sizeof(T))) {
+				return false;
+			}
+
+			vector.resize(size);
+
+			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
+				// If the buffer and system endianness match, or each element is one byte,
+				// endianness is irrelevant, so memcpy the entire array at once
+				std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + current_deserialize_index_, size * sizeof(T));
+				current_deserialize_index_ += size * sizeof(T);
+			}
+			else { // For multi-byte types with differing endianness, handle each element individually
+				for (std::size_t i = 0; i < size; ++i) {
+					std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
+					std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&vector[i]),
+						reinterpret_cast<std::uint8_t*>(&vector[i]) + sizeof(T));
+					current_deserialize_index_ += sizeof(T);
+				}
+			}
 			return true;
 		}
 
