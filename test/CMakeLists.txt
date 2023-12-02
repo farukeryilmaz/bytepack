@@ -7,6 +7,7 @@ target_link_libraries(BytePackTests PRIVATE bytepack)
 target_sources(BytePackTests 
     PRIVATE
         fundamental_type_test.cpp
+        fixed_width_type_test.cpp
         string_test.cpp
         basic_array_type_test.cpp
         usecase1_test.cpp
