@@ -10,5 +10,6 @@ target_sources(BytePackTests
         fixed_width_type_test.cpp
         string_test.cpp
         basic_array_type_test.cpp
+        std_containers_test.cpp
         usecase1_test.cpp
 )
