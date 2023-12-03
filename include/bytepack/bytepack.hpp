@@ -116,7 +116,7 @@ namespace bytepack {
 	 *                      Defaults to big-endian (network byte order).
 	 */
 	template<std::endian BufferEndian = std::endian::big>
-	class binary_stream {
+	class binary_stream final {
 
 	public:
 		explicit binary_stream(const std::size_t buffer_size) noexcept
