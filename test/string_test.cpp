@@ -34,29 +34,35 @@ TEST_CASE("String and string view (big-endian)")
 TEST_CASE("String and string view (little-endian)")
 {
 	std::string str = "Hello Bytepack!";
-	std::string_view str2 = "bytepack library C++20";
+	char str2[] = "bytepack library";
+	std::string_view str3 = "bytepack library C++20";
 
-	bytepack::binary_stream<std::endian::little> bstream(64);
+	bytepack::binary_stream<std::endian::little> bstream(74);
 
 	bstream.write(str);
-	bstream.write<std::uint32_t>(str2);
+	bstream.write(str2);
+	bstream.write<std::uint32_t>(str3);
 
 	std::string str_{};
-	std::string str2_{}; // string_view cannot be read into directly (it's a reference)
+	std::string str2_{};
+	std::string str3_{}; // string_view cannot be read into directly (it's a reference)
 
 	auto buffer = bstream.data();
 	bytepack::binary_stream<std::endian::little> bstream_(buffer);
 
 	bstream_.read(str_);
-	bstream_.read<std::uint32_t>(str2_);
+	bstream_.read(str2_, bytepack::StringMode::NullTerminated);
+	bstream_.read<std::uint32_t>(str3_);
 
 	// 8 bytes for the size of the string, 15 bytes for the string itself
+	// 17 bytes for the string (char[]), (17th byte for the null terminator)
 	// 4 bytes for the custom size of the string_view, 22 bytes for the string_view itself
-	// 49 bytes in total
-	REQUIRE(49 == buffer.size());
+	// 66 bytes in total
+	REQUIRE(66 == buffer.size());
 
 	REQUIRE(str == str_);
 	REQUIRE(str2 == str2_);
+	REQUIRE(str3 == str3_);
 }
 
 TEST_CASE("String, string view and fundamental types mixed (big-endian)")
