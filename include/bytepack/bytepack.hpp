@@ -1,7 +1,7 @@
 /*
 * MIT License
 *
-* Copyright (c) 2023 Faruk Eryilmaz
+* Copyright (c) 2023 Faruk Eryilmaz and contributors
 *
 * Contact: faruk [at] farukeryilmaz [dot] com
 * GitHub: https://github.com/farukeryilmaz/bytepack
