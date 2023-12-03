@@ -107,6 +107,11 @@ namespace bytepack {
 	template<typename T>
 	concept IntegralType = std::is_integral_v<T>;
 
+	enum class StringMode {
+		SizePrefixed,  // String length is serialized as metadata before the string data (default)
+		NullTerminated // Null terminator is appended to the string data
+	};
+
 	/**
 	 * @class binary_stream
 	 * @brief A class for serializing and deserializing binary data with support for different endianness.
@@ -272,30 +277,12 @@ namespace bytepack {
 			return true;
 		}
 
-
 		template<IntegralType SizeType = std::size_t, SerializableString StringType>
-		bool write(const StringType& value) noexcept {
-			const SizeType str_length = static_cast<SizeType>(value.length());
-			if ((std::is_signed_v<SizeType> && str_length < 0)
-				|| static_cast<std::size_t>(str_length) != value.length()) {
-				// Overflow or incorrect size type
-				return false;
+		bool write(const StringType& value, const bytepack::StringMode mode = bytepack::StringMode::SizePrefixed) noexcept {
+			if (mode == StringMode::NullTerminated) {
+				return write_string_null_terminated(value);
 			}
-
-			if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
-				// String data and its length field cannot fit in the remaining buffer space
-				return false;
-			}
-
-			// Write string length field first (before the string data)
-			if (write(str_length) == false) {
-				return false;
-			}
-
-			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value.data(), value.length());
-			current_serialize_index_ += value.length();
-
-			return true;
+			return write_string_size_prefixed<SizeType>(value);
 		}
 
 		// TODO: Implement Flexible String Serialization Strategies
@@ -442,7 +429,56 @@ namespace bytepack {
 		}
 
 		template<IntegralType SizeType = std::size_t>
-		bool read(std::string& value) noexcept {
+		bool read(std::string& value, const bytepack::StringMode mode = bytepack::StringMode::SizePrefixed) noexcept {
+			if (mode == StringMode::NullTerminated) {
+				return read_string_null_terminated(value);
+			}
+			return read_string_size_prefixed<SizeType>(value);
+		}
+
+	private:
+		template<IntegralType SizeType = std::size_t, SerializableString StringType>
+		bool write_string_size_prefixed(const StringType& value) noexcept {
+			const SizeType str_length = static_cast<SizeType>(value.length());
+			if ((std::is_signed_v<SizeType> && str_length < 0)
+				|| static_cast<std::size_t>(str_length) != value.length()) {
+				// Overflow or incorrect size type
+				return false;
+			}
+
+			if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
+				// String data and its length field cannot fit in the remaining buffer space
+				return false;
+			}
+
+			// Write string length field first (before the string data)
+			if (write(str_length) == false) {
+				return false;
+			}
+
+			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value.data(), value.length());
+			current_serialize_index_ += value.length();
+
+			return true;
+		}
+
+		template<SerializableString StringType>
+		bool write_string_null_terminated(const StringType& value) noexcept {
+			const std::size_t str_length = value.length() + 1; // +1 for null terminator
+
+			if (buffer_.size() < (current_serialize_index_ + str_length)) {
+				return false;
+			}
+
+			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value.data(), str_length - 1);
+			buffer_.as<std::uint8_t>()[current_serialize_index_ + str_length - 1] = '\0'; // null terminator
+			current_serialize_index_ += str_length;
+
+			return true;
+		}
+
+		template<IntegralType SizeType = std::size_t, SerializableString StringType>
+		bool read_string_size_prefixed(StringType& value) noexcept {
 			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType))) {
 				return false;
 			}
@@ -472,6 +508,26 @@ namespace bytepack {
 				static_cast<std::size_t>(str_length));
 
 			current_deserialize_index_ += sizeof(SizeType) + static_cast<std::size_t>(str_length);
+
+			return true;
+		}
+
+		template<SerializableString StringType>
+		bool read_string_null_terminated(StringType& value) noexcept {
+			std::size_t end_index = current_deserialize_index_;
+			// Find null terminator in the buffer starting from the current deserialize index
+			while (end_index < buffer_.size() && buffer_.as<char>()[end_index] != '\0') {
+				++end_index; // Move to next byte
+			}
+
+			if (end_index >= buffer_.size()) {
+				return false; // Null terminator not found
+			}
+
+			std::size_t str_length = end_index - current_deserialize_index_;
+			value.assign(buffer_.as<char>() + current_deserialize_index_, str_length);
+
+			current_deserialize_index_ += str_length + 1; // +1 for null terminator
 
 			return true;
 		}
