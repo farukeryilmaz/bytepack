@@ -27,6 +27,8 @@
 #include <algorithm>
 #include <concepts>
 #include <optional>
+#include <vector>
+#include <array>
 
 namespace bytepack {
 
@@ -201,6 +203,30 @@ namespace bytepack {
 			return true;
 		}
 
+		template<typename T, std::size_t N> requires NetworkSerializableBasic<T>
+		bool write(const std::array<T, N>& array) noexcept {
+			if (buffer_.size() < (current_serialize_index_ + N * sizeof(T))) {
+				// Array elements cannot fit in the remaining buffer space
+				return false;
+			}
+
+			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
+				// If the buffer and system endianness match, or each element is one byte,
+				// endianness is irrelevant, so memcpy the entire array at once
+				std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, array.data(), N * sizeof(T));
+				current_serialize_index_ += N * sizeof(T);
+			}
+			else { // For multi-byte types with differing endianness, handle each element individually
+				for (std::size_t i = 0; i < N; ++i) {
+					std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &array[i], sizeof(T));
+					std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
+						buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
+					current_serialize_index_ += sizeof(T);
+				}
+			}
+			return true;
+		}
+
 		template<IntegralType SizeType = std::size_t, typename T> requires NetworkSerializableBasic<T>
 		bool write(const std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept {
 			const std::size_t size = num_elements.value_or(vector.size());
@@ -344,6 +370,32 @@ namespace bytepack {
 					std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&value[i]),
 						reinterpret_cast<std::uint8_t*>(&value[i]) + elementSize);
 					current_deserialize_index_ += elementSize;
+				}
+			}
+
+			return true;
+		}
+
+		template<typename T, std::size_t N> requires NetworkSerializableBasic<T>
+		bool read(std::array<T, N>& array) noexcept {
+			// Check if there is enough data in the buffer to read the entire array
+			if (buffer_.size() < (current_deserialize_index_ + N * sizeof(T))) {
+				return false;
+			}
+
+			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
+				// If the buffer and system endianness match, or each element is one byte,
+				// endianness is irrelevant, so memcpy the entire array at once
+				std::memcpy(array.data(), buffer_.as<std::uint8_t>() + current_deserialize_index_, N * sizeof(T));
+				current_deserialize_index_ += N * sizeof(T);
+			}
+			else {
+				// For multi-byte types with differing endianness, handle each element individually
+				for (size_t i = 0; i < N; ++i) {
+					std::memcpy(&array[i], buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
+					std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&array[i]),
+						reinterpret_cast<std::uint8_t*>(&array[i]) + sizeof(T));
+					current_deserialize_index_ += sizeof(T);
 				}
 			}
 
