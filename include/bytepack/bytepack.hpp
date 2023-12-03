@@ -356,7 +356,8 @@ namespace bytepack {
 			// If `num_elements` is not specified, the std::vector size is deserialized from the metadata before the vector data
 			if (num_elements == std::nullopt) {
 				SizeType size_custom{};
-				if (read(size_custom) == false) {
+				// vector size cannot be negative, and zero-size is also unusual so it's treated as an error.
+				if (read(size_custom) == false || size_custom < 1) {
 					return false;
 				}
 				size = static_cast<std::size_t>(size_custom);
