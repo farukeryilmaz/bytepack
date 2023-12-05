@@ -43,16 +43,16 @@ namespace bytepack {
 	class buffer_view {
 	public:
 		template<typename T, std::size_t N>
-		constexpr buffer_view(T(&array)[N]) noexcept
+		explicit constexpr buffer_view(T(&array)[N]) noexcept
 			: data_{ array }, size_{ N * sizeof(T) },
 			ssize_{ to_ssize(N * sizeof(T)) } {}
 
 		template<typename T>
-		buffer_view(T* ptr, std::size_t size) noexcept
+		explicit constexpr buffer_view(T* ptr, std::size_t size) noexcept
 			: data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) },
 			ssize_{ to_ssize(size * sizeof(T)) } {}
 
-		buffer_view(std::string& str) noexcept
+		explicit buffer_view(std::string& str) noexcept
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
 		/**
@@ -131,7 +131,7 @@ namespace bytepack {
 			// TODO: consider lazy initialization (lazy-load) for `buffer_`. It might come in useful in some cases.
 		}
 
-		explicit binary_stream(const bytepack::buffer_view& buffer) noexcept
+		explicit constexpr binary_stream(const bytepack::buffer_view& buffer) noexcept
 			: buffer_{ buffer }, owns_buffer_{ false }, current_serialize_index_{ 0 },
 			current_deserialize_index_{ 0 }
 		{}
@@ -153,7 +153,7 @@ namespace bytepack {
 		}
 
 		[[nodiscard]] bytepack::buffer_view data() const noexcept {
-			return { buffer_.as<std::uint8_t>(), current_serialize_index_ };
+			return bytepack::buffer_view(buffer_.as<std::uint8_t>(), current_serialize_index_);
 		}
 
 		template<NetworkSerializableBasic T>
