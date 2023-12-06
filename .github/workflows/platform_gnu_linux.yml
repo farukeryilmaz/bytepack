@@ -34,6 +34,8 @@ jobs:
           sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-${{ matrix.config.compiler_ver}} 100
           sudo update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-${{ matrix.config.compiler_ver}} 100
       - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
       - name: Configure
         run: cmake -S . -B build
       - name: Build
