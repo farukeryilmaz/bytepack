@@ -21,4 +21,4 @@ jobs:
       - name: Run tests
         run: |
           cd build
-          ctest --rerun-failed --output-on-failure
+          ctest -C Release --rerun-failed --output-on-failure
