@@ -59,10 +59,8 @@ namespace bytepack {
 		 * Templated method to get data as the specified type.
 		 *
 		 * Warning: This method does not provide type safety and assumes the user knows the correct type of the data.
-		 *
-		 * Note on Error Checking:
-		 * This method does not perform size checks. Users should ensure that the buffer is large enough
-		 * to contain the data of type T. Accessing beyond the bounds of the buffer can lead to undefined behavior.
+		 * It also does not perform size checks, so users must ensure that the buffer is large enough to contain
+		 * the data of type T. Accessing beyond the bounds of the buffer can lead to undefined behavior.
 		 *
 		 * @tparam T The type to which the buffer's data will be cast.
 		 * @return Pointer to the buffer's data cast to the specified type.
@@ -109,7 +107,7 @@ namespace bytepack {
 
 	enum class StringMode {
 		SizePrefixed,  // String length is serialized as metadata before the string data (default)
-		NullTerminated // Null terminator is appended to the string data
+		NullTerminated // Null terminator is appended to the string data instead of prepending string length metadata
 	};
 
 	/**
