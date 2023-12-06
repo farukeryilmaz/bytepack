@@ -1,4 +1,9 @@
 # BytePack: Simple C++ Binary Serialization Library
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/farukeryilmaz/bytepack/blob/main/LICENSE)
+[![Windows build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_windows.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_windows.yml)
+[![GNU/Linux build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_gnu_linux.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_gnu_linux.yml)
+[![macOS build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_macos.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_macos.yml)
+
 Header-only C++20 library designed for efficient and flexible binary serialization and deserialization, allowing users to specify the endianness. BytePack does not enforce specific standardization (IDL, metadata, etc.), making it highly adaptable for projects that rely on external interface, custom data formats, such as those found in Interface Control Documents (ICD), Interface Design Description (IDD), etc. BytePack seamlessly works with such specifications, making it straightforward to integrate into existing systems.
 
 _While it offers several features and benefits, it's important to note that the project is still under development and may not fulfill all features or requirements you might expect from a mature library. The library is evolving, and your feedback and contributions are valuable in shaping its future._
@@ -10,7 +15,7 @@ _While it offers several features and benefits, it's important to note that the 
 - **No Exceptions:** Ensures stable and predictable error handling.
 - **Flexible Buffer Management:** Utilizes a non-owning mutable buffer concept for efficient memory management.
 - **Easy to Debug and Customize:** Clear and concise codebase makes debugging easy. Adaptable for customization to address specific requirements.
-- **Cross-platform compatible:** Tested on `GNU/Linux` and `Windows`.
+- **Cross-platform compatible:** Tested on `Windows`, `GNU/Linux` and `macOS`.
 
 ## Usage Example
 This is just one example among many possible scenarios demonstrating the diverse applications and versatility of `BytePack`. It provides a glimpse into the project's potential, encouraging users to explore a wide range of other use cases.
@@ -72,7 +77,7 @@ gpsData_.deserialize(deserializationStream);
 - `CMake 3.12` or higher.
 - **GNU/Linux:** `GCC 10.1` or higher, `Clang 11` or higher.
 - **Windows:** `Visual Studio 2019 version 16.11.14` or higher.
-- **macOS:** _Not officially tested. Feedback and contributions from macOS users are welcome._
+- **macOS:** `Xcode 14.3` or higher.
 
 ## Installation
 Simply clone the repository or download the `bytepack.hpp` file and include it in your project.
