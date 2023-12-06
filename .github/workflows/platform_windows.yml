@@ -1,0 +1,24 @@
+name: Platform Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Windows MSVC Latest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_CXX_STANDARD=20"
+      - name: Build
+        run: cmake --build build --config Release
+      - name: Run tests
+        run: |
+          cd build
+          ctest
