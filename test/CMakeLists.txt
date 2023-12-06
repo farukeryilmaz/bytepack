@@ -13,3 +13,5 @@ target_sources(BytePackTests
         std_containers_test.cpp
         usecase1_test.cpp
 )
+
+add_test(NAME BytePackTests COMMAND BytePackTests)
