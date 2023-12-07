@@ -1,12 +1,14 @@
 # BytePack: Simple C++ Binary Serialization Library
+<p align="center">
+  <img src="doc/images/bytepack-logo.jpg" alt="BytePack: Simple C++ Binary Serialization Library Logo" width="200"/>
+</p>
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/farukeryilmaz/bytepack/blob/main/LICENSE)
 [![Windows build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_windows.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_windows.yml)
 [![GNU/Linux build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_gnu_linux.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_gnu_linux.yml)
 [![macOS build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_macos.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_macos.yml)
 
 Header-only C++20 library designed for efficient and flexible binary serialization and deserialization, allowing users to specify the endianness. BytePack does not enforce specific standardization (IDL, metadata, etc.), making it highly adaptable for projects that rely on external interface, custom data formats, such as those found in Interface Control Documents (ICD), Interface Design Description (IDD), etc. BytePack seamlessly works with such specifications, making it straightforward to integrate into existing systems.
-
-_While it offers several features and benefits, it's important to note that the project is still under development and may not fulfill all features or requirements you might expect from a mature library. The library is evolving, and your feedback and contributions are valuable in shaping its future._
 
 ## Features
 - **Header-Only:** Easy to integrate, just include `bytepack.hpp` in your project.
@@ -84,7 +86,7 @@ Simply clone the repository or download the `bytepack.hpp` file and include it i
 ```bash
 git clone https://github.com/farukeryilmaz/bytepack.git
 ```
-If you want to clone the repository with submodules (Catch2 v2.x), use the following command:
+If you want to run the tests, clone the repository with submodules (Catch2 v2.x):
 ```bash
 git clone --recursive https://github.com/farukeryilmaz/bytepack.git
 ```
