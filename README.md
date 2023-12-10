@@ -24,20 +24,20 @@ This is just one example among many possible scenarios demonstrating the diverse
 ```cpp
 // Sample struct for a conceptual usage scenario
 struct SensorData {
-    std::uint64_t timestamp; // Time of measurement
+    std::int64_t timestamp;  // UNIX timestamp of measurement
     double value;            // Measured value
     char sensor_id[16];      // Identifier of the sensor
 
     void serialize(bytepack::binary_stream<>& stream) const {
-      stream.write(timestamp);
-      stream.write(value);
-      stream.write(sensor_id);
+        stream.write(timestamp);
+        stream.write(value);
+        stream.write(sensor_id);
     }
 
     void deserialize(bytepack::binary_stream<>& stream) {
-      stream.read(timestamp);
-      stream.read(value);
-      stream.read(sensor_id);
+        stream.read(timestamp);
+        stream.read(value);
+        stream.read(sensor_id);
     }
 };
 
@@ -45,6 +45,7 @@ SensorData sensorData{ 1701037875, 23.6, "Sensor-001" };
 
 // Default endianness is big-endian (network byte order).
 // little-endian configuration: `bytepack::binary_stream<std::endian::little>`
+// You can also supply your own buffer to serialize onto.
 bytepack::binary_stream serializationStream(64); // 64 is the buffer size in bytes
 
 sensorData.serialize(serializationStream);
@@ -54,9 +55,9 @@ bytepack::buffer_view buffer = serializationStream.data();
 // e.g. char* dataPtr = buffer.as<char>();
 std::uint8_t* dataPtr = buffer.as<std::uint8_t>();
 std::size_t dataSize = buffer.size(); // returns the serialized data size in bytes
-// you can send the dataPtr to a socket, write it to a file, etc.
+// you can send the dataPtr to a socket, etc.
 
-// If you want to deserialize the data coming from a socket etc.,
+// If you want to deserialize the data coming from a socket, etc.,
 // you can initialize non-owning mutable buffer with the data pointer and size.
 // e.g. `bytepack::buffer_view buffer(dataPtr, dataSize);`
 bytepack::binary_stream deserializationStream(buffer);
@@ -83,6 +84,8 @@ Include the library in your C++ project:
 ```
 
 ## Design Philosophy
+_For more details: [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md)_
+
 BytePack is a C++ library crafted with a clear focus on simplicity and flexibility in binary serialization, primarily for network communication. It does not enforce any standardization, versioning, or the use of Interface Description Language (IDL) in serialization, providing you with the freedom to define your data structures and protocols. This approach is ideal when interfacing with systems where data formats and protocols are defined externally, as is often the case in standards like IEEE 12207, Interface Control Documents (ICD), Interface Design Description (IDD), and other industry-specific specifications. It allows you to seamlessly integrate BytePack into diverse projects, accommodating a wide range of requirements and compliance standards.
 
 ## Contributions and Feedback
