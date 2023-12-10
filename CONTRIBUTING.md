@@ -1,6 +1,8 @@
 # Contributing to BytePack
 First off, thank you for considering contributing to BytePack. Whether you're fixing a bug, writing a test, adding a feature, or improving documentation, your work is important to the growth of BytePack. It's people like you that make the open-source community such a fantastic place to learn, inspire, and create.
 
+> Before submitting code changes, feedback or suggestions, please read the [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md)
+
 ## Ways to Contribute
 ### 1) Reporting Bugs
 
