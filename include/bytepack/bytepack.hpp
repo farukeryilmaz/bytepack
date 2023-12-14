@@ -91,10 +91,8 @@ namespace bytepack {
 	};
 
 	template<typename T>
-	concept NetworkSerializableBasic = std::is_trivially_copyable_v<T>
-		&& std::is_standard_layout_v<T>
-		&& std::is_class_v<T> == false
-		&& std::is_array_v<T> == false;
+	concept NetworkSerializableBasic = (std::is_fundamental_v<T> || std::is_enum_v<T>)
+		&& std::is_pointer_v<T> == false && std::is_reference_v<T> == false;
 
 	template<typename T>
 	concept NetworkSerializableBasicArray = std::is_array_v<T> && NetworkSerializableBasic<std::remove_extent_t<T>>;
@@ -125,9 +123,7 @@ namespace bytepack {
 		explicit binary_stream(const std::size_t buffer_size) noexcept
 			: buffer_{ new std::uint8_t[buffer_size]{}, buffer_size }, owns_buffer_{ true },
 			current_serialize_index_{ 0 }, current_deserialize_index_{ 0 }
-		{
-			// TODO: consider lazy initialization (lazy-load) for `buffer_`. It might come in useful in some cases.
-		}
+		{}
 
 		explicit constexpr binary_stream(const bytepack::buffer_view& buffer) noexcept
 			: buffer_{ buffer }, owns_buffer_{ false }, current_serialize_index_{ 0 },
@@ -282,26 +278,6 @@ namespace bytepack {
 			}
 			return write_string_size_prefixed<SizeType>(value);
 		}
-
-		// TODO: Implement Flexible String Serialization Strategies
-		//
-		// Enhancement Scope:
-		// The current string serialization approach in binary_stream writes the string length as metadata
-		// before the actual data. This design is optimal for dynamic-length strings but can be suboptimal
-		// or unnecessary in certain use cases. New modes aim to introduce additional string serialization
-		// strategies to accommodate different use cases and improve the library's applicability to a broader
-		// range of use cases.
-		//
-		// New Modes:
-		// 1. Null-Terminated Strings: In scenarios where strings are conventionally terminated with a null
-		//    character, it's beneficial to offer a serialization mode that appends a null terminator instead of
-		//    prepending string length metadata. This approach is common in C-style string handling and can
-		//    facilitate interoperability with such systems.
-		//
-		// 2. Fixed-Length Strings: Certain protocols or standards (e.g., Interface Control Documents (ICDs),
-		//    Interface Definition Documents (IDDs) may mandate fixed-length string fields. In these cases,
-		//    string size metadata is redundant. A fixed-size serialization mode should serialize strings to
-		//    a predetermined, fixed length, applying padding or truncation as necessary.
 
 		// TODO: Currently, the serialization of std::wstring and std::wstring_view is not supported
 		// due to the variation in wchar_t size across platforms (e.g., 2 bytes on Windows, 4 bytes on Unix/Linux).
@@ -534,7 +510,7 @@ namespace bytepack {
 		bytepack::buffer_view buffer_;
 
 		// Flag to indicate buffer ownership
-		// TODO: Consider alternative ownership models and design to handle external buffers
+		// TODO: Consider alternative ownership models, and design to handle external buffers
 		bool owns_buffer_;
 
 		std::size_t current_serialize_index_;
