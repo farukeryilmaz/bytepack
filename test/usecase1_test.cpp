@@ -3,7 +3,7 @@
 #include <bytepack/bytepack.hpp>
 
 
-TEST_CASE("Struct mixed data serialization and deserialization (big-endian)")
+TEST_CASE("Example - mixed data serialization and deserialization (big-endian)")
 {
 	// Example enum and struct
 
@@ -56,4 +56,40 @@ TEST_CASE("Struct mixed data serialization and deserialization (big-endian)")
 	REQUIRE(gpsData.altitude == Approx(gpsData_.altitude).epsilon(1e-2));
 	REQUIRE(gpsData.numSatellites == gpsData_.numSatellites);
 	REQUIRE_THAT(gpsData.deviceID, Catch::Matchers::Equals(gpsData_.deviceID));
+}
+
+TEST_CASE("Example 2 - mixed data serialization and deserialization (big-endian)")
+{
+	// Example struct
+	struct SensorData {
+		std::int64_t timestamp;  // UNIX timestamp of measurement
+		double value;            // Measured value
+		char sensor_id[16];      // Identifier of the sensor
+
+		void serialize(bytepack::binary_stream<>& stream) const {
+			stream.write(timestamp);
+			stream.write(value);
+			stream.write(sensor_id);
+		}
+
+		void deserialize(bytepack::binary_stream<>& stream) {
+			stream.read(timestamp);
+			stream.read(value);
+			stream.read(sensor_id);
+		}
+	};
+
+	SensorData sensorData{ 1701037875, 23.6, "Sensor-001" };
+
+	bytepack::binary_stream serializationStream(64);
+	sensorData.serialize(serializationStream);
+
+	bytepack::binary_stream deserializationStream(serializationStream.data());
+
+	SensorData sensorData_{};
+	sensorData_.deserialize(deserializationStream);
+
+	REQUIRE(sensorData.timestamp == sensorData_.timestamp);
+	REQUIRE(sensorData.value == Approx(sensorData_.value).epsilon(1e-3));
+	REQUIRE_THAT(sensorData.sensor_id, Catch::Matchers::Equals(sensorData_.sensor_id));
 }
