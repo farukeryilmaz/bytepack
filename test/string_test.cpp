@@ -110,3 +110,30 @@ TEST_CASE("String, string view and fundamental types mixed (big-endian)")
 	REQUIRE(str2 == str2_);
 	REQUIRE(num3 == Approx(num3_).epsilon(1e-4));
 }
+
+TEST_CASE("String and string view null terminated (little-endian)")
+{
+	std::string str = "Hello BytePack!";
+	double num1 = 3754.34526243;
+
+	bytepack::binary_stream<std::endian::little> bstream(32);
+
+	bstream.write(str, bytepack::StringMode::NullTerminated);
+	bstream.write(num1);
+
+	std::string str_{};
+	double num1_{};
+
+	auto buffer = bstream.data();
+	bytepack::binary_stream<std::endian::little> bstream_(buffer);
+
+	bstream_.read(str_, bytepack::StringMode::NullTerminated);
+	bstream_.read(num1_);
+
+	// 15 bytes for the string, 1 byte for the null terminator '\0'
+	// 8 bytes for double
+	// 24 bytes in total
+	REQUIRE(24 == buffer.size());
+	REQUIRE(str == str_);
+	REQUIRE(num1 == Approx(num1_).epsilon(1e-7));
+}
