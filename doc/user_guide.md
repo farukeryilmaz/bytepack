@@ -12,32 +12,40 @@ This document provides an overview of the `BytePack` binary serialization librar
 - **C-style arrays** such as _`char[]`, `int[]`, `double[]`, etc._
 
 ## 3. Classes
+> **namespace**: Library specific implementations (class, concept, etc.) are under `bytepack` namespace.
 - `binary_stream`: The main class for serializing and deserializing data.
 - `buffer_view`: A non-owning mutable class that represents a buffer to provide an interface to access binary data without owning it. It encapsulates a pointer to data and its size. It does not manage the lifetime of the underlying data.
 
-### 3.1 binary_stream
+## bytepack::**binary_stream**
 The `binary_stream` class can be instantiated either with a non-owning buffer (_buffer_view_) or a specified size in bytes. When initialized with a size, the binary_stream autonomously allocates and manages the buffer's lifecycle. However, if it is constructed with a user-supplied buffer, it is the user's responsibility to ensure the proper deletion or freeing of the buffer.
 
-**Example Instantiation:**
-- Default buffer **endianness** is `big-endian`. If you want to configure as `little-endian`, instantiate as `bytepack::binary_stream<std::endian::little> stream(..`
+### Example Instantiation:
+Default buffer **endianness** is `big-endian`. If you want to configure as `little-endian`, instantiate as `bytepack::binary_stream<std::endian::little> stream(..`
 - Create a stream with a new internal buffer of the specified size in bytes:
   1. `bytepack::binary_stream stream(1024);`
-- Create a stream using a user-supplied buffer:
+- Create a stream using a user-supplied buffer (_read buffer_view class below_):
   1. `bytepack::buffer_view buffer(ptr, size);`
   2. `bytepack::binary_stream stream(buffer);`
 
-**Serialization Methods:** _(one method to serialize them all: `stream.write(var);`)_
-- Serialize basic types: `stream.write(value);`
-- Serialize C-style arrays: `stream.write(arr);`
-- Serialize _std::string_ and _std:string_view_:
+### Methods:
+- `data()`:
+  - Returns a `buffer_view` representing the current state of the internal buffer.
+  - Example: `auto data = stream.data();`
+    - You can access underlying data pointer and serialized data size with `as<T>()` and `size()`. Read `bytepack::buffer_view` section below.
+
+### Serialization Methods:
+> _one method to serialize them all: `stream.write(var);`_
+- basic types: `stream.write(value);`
+- C-style arrays: `stream.write(arr);`
+- _std::string_ and _std:string_view_:
   - Serialize string with size prefixed (Prepends the string length. Default type of prefix is _std::size_t_): 
     - `stream.write(str);`
   - Serialize string with size prefixed (Prepends the string length. Specify type of prefix): 
     - e.g. `stream.write<std::uint8_t>(str);`
   - Serialize string with null terminated (writes `'\0'` to buffer after the string):
     - `stream.write(str, bytepack::StringMode::NullTerminated);`
-- Serialize _std::array_: `stream.write(arr);`
-- Serialize _std::vector_:
+- _std::array_: `stream.write(arr);`
+- _std::vector_:
   - Serialize vector with size prefixed (default type of prefix is _std::size_t_): 
     - `stream.write(vec);`
   - Serialize vector with size prefixed (specify type of prefix): 
@@ -45,18 +53,19 @@ The `binary_stream` class can be instantiated either with a non-owning buffer (_
   - Serialize vector with fixed size (no size prefix): 
     - e.g. `stream.write(vec, 2);`
 
-**Deserialize Methods:** _(one method to deserialize them all: `stream.read(var);`)_
-- Deserialize basic types: `stream.read(value);`
-- Deserialize C-style arrays: `stream.read(arr);`
-- Deserialize _std::string_ and _std:string_view_:
+### Deserialize Methods:
+> _one method to deserialize them all: `stream.read(var);`_
+- basic types: `stream.read(value);`
+- C-style arrays: `stream.read(arr);`
+- _std::string_ and _std:string_view_:
   - Deserialize size prefixed strings (default type of prefix is _std::size_t_): 
     - `stream.read(str);`
   - Deserialize size prefixed strings (specify type of prefix): 
     - e.g. `stream.read<std::uint8_t>(str);`
   - Deserialize null terminated strings (reads until `'\0'` is reached. _It won't exceed the buffer_):
     - `stream.read(str, bytepack::StringMode::NullTerminated);`
-- Deserialize _std::array_: `stream.read(arr);`
-- Deserialize _std::vector_:
+- _std::array_: `stream.read(arr);`
+- _std::vector_:
   - Deserialize size prefixed vectors (default type of prefix is _std::size_t_): 
     - `stream.read(vec);`
   - Deserialize size prefixed vectors (specify type of prefix): 
@@ -64,5 +73,35 @@ The `binary_stream` class can be instantiated either with a non-owning buffer (_
   - Deserialize fixed size vectors (no size prefix): 
     - e.g. `stream.read(vec, 2);`
 
-### 3.2 buffer_view
-_(incomplete)_
+### Other Methods:
+- `reset()`:
+  - The `reset` method resets the internal indices used for serialization and deserialization within the `binary_stream`. This method offers significant advantages beyond just resetting indices, especially in the context of network or socket communication. When using a `buffer_view` to hold a non-owning mutable reference to a buffer resource (like a `char*` array) for socket/network communication, `reset` enables efficient and continuous data processing without the need to create new `binary_stream` instances. Each time new data arrives through the network, the `binary_stream` can be reset to start reading from the beginning of the same `buffer_view`. This approach is particularly useful for handling streaming data or processing multiple messages using the same buffer, thereby optimizing resource usage and simplifying buffer management in networked applications. For example, after processing a chunk of incoming data, calling `reset()` prepares the `binary_stream` to handle the next chunk using the same underlying buffer, ensuring seamless and efficient data handling in continuous communication scenarios.
+
+## bytepack::**buffer_view**
+### Example Instantiation:
+- From Pointer and Size:
+  1. `char* bufferData = new char[100];`
+  2. `bytepack::buffer_view buffer(bufferData, 100);`
+- From C-style Array:
+  1. `char bufferData[100];`
+  2. `bytepack::buffer_view buffer(data);`
+- From _std::string_:
+  1. `std::string str = "...`
+  2. `bytepack::buffer_view buffer(str);`
+
+### Methods:
+- `as<T>()`:
+  - Template method to get a pointer to the buffer's data cast to the specified type T.
+  - Example: `char* ptr = buffer.as<char>();`
+- `size()`:
+  - Returns the size of the buffer in bytes.
+  - Example: `std::size_t size = buffer.size();`
+- `ssize()`:
+  - Returns the signed size of the buffer.
+  - Example: `std::ptrdiff_t ssize = buffer.ssize();`
+- `is_empty()`:
+  - Checks if the buffer is empty (size is 0).
+  - Example: `bool empty = view.is_empty();`
+- `operator bool()`:
+  - Checks if the buffer is valid (non-null and size greater than 0).
+  - Example: `if (view) { /* Buffer is valid */ }`
