@@ -8,7 +8,7 @@
 [![GNU/Linux build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_gnu_linux.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_gnu_linux.yml)
 [![macOS build-test status](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_macos.yml/badge.svg)](https://github.com/farukeryilmaz/bytepack/actions/workflows/platform_macos.yml)
 
-Header-only C++20 library designed for efficient and flexible binary serialization and deserialization, allowing users to specify the endianness. BytePack does not enforce specific standardization (IDL, metadata, etc.), making it highly adaptable for projects that rely on external interface, custom data formats, such as those found in Interface Control Documents (ICD), Interface Design Description (IDD), etc. BytePack seamlessly works with such specifications, making it straightforward to integrate into existing systems.
+Header-only C++20 library primarily designed for network communication, focusing on efficient and flexible binary serialization and deserialization. It allows users to specify endianness and does not enforce specific standardization (IDL, metadata, etc.), making it highly adaptable for projects that rely on external interface, custom data formats, such as those found in Interface Control Documents (ICD), Interface Design Description (IDD), and similar specifications. BytePack seamlessly works with such specifications, making it straightforward to integrate into existing systems.
 
 ## Features
 - **Header-Only:** Easy to integrate, just include `bytepack.hpp` in your project.
@@ -20,7 +20,8 @@ Header-only C++20 library designed for efficient and flexible binary serializati
 - **Cross-platform compatible:** Tested on `Windows`, `GNU/Linux` and `macOS`.
 
 ## Usage Example
-This is just one example among many possible scenarios demonstrating the diverse applications and versatility of `BytePack`. It provides a glimpse into the project's potential, encouraging users to explore a wide range of other use cases.
+This example illustrates the diverse applications and potential of BytePack, encouraging exploration of its many possible use cases.
+> For more, please read [User Guide and API Documentation](doc/user_guide.md)
 ```cpp
 // Sample struct for a conceptual usage scenario
 struct SensorData {
@@ -84,9 +85,8 @@ Include the library in your C++ project:
 ```
 
 ## Design Philosophy
-_For more details: [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md)_
-
 BytePack is a C++ library crafted with a clear focus on simplicity and flexibility in binary serialization, primarily for network communication. It does not enforce any standardization, versioning, or the use of Interface Description Language (IDL) in serialization, providing you with the freedom to define your data structures and protocols. This approach is ideal when interfacing with systems where data formats and protocols are defined externally, as is often the case in standards like IEEE 12207, Interface Control Documents (ICD), Interface Design Description (IDD), and other industry-specific specifications. It allows you to seamlessly integrate BytePack into diverse projects, accommodating a wide range of requirements and compliance standards.
+> For more details: [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md)
 
 ## Contributions and Feedback
 Contributions are welcome! If you encounter issues, have suggestions, or want to contribute to the development of the library, please read the [Contribution Guideline](CONTRIBUTING.md).
