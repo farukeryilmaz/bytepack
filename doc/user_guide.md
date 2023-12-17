@@ -79,12 +79,12 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
 
 ## bytepack::**buffer_view**
 ### Example Instantiation:
-- From Pointer and Size:
-  1. `char* bufferData = new char[100];`
-  2. `bytepack::buffer_view buffer(bufferData, 100);`
-- From C-style Array:
-  1. `char bufferData[100];`
+- From C-style Array (_stack buffer_):
+  1. `char data[1024]{};`
   2. `bytepack::buffer_view buffer(data);`
+- From Pointer and Size:
+  1. `char* data = new char[1024]{};`
+  2. `bytepack::buffer_view buffer(data, 1024);`
 - From _std::string_:
   1. `std::string str = "...`
   2. `bytepack::buffer_view buffer(str);`
@@ -101,7 +101,53 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
   - Example: `std::ptrdiff_t ssize = buffer.ssize();`
 - `is_empty()`:
   - Checks if the buffer is empty (size is 0).
-  - Example: `bool empty = view.is_empty();`
+  - Example: `bool empty = buffer.is_empty();`
 - `operator bool()`:
   - Checks if the buffer is valid (non-null and size greater than 0).
-  - Example: `if (view) { /* Buffer is valid */ }`
+  - Example: `if (buffer) { /* Buffer is valid */ }`
+
+## Example Codes
+### Simple Serialization - 1 (_default heap allocated buffer_)
+  ```cpp
+// Variables to serialize
+int intArr[10]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+float num = 29845.221612f;
+
+bytepack::binary_stream stream(1024);
+
+stream.write(intArr);
+stream.write(num);
+
+bytepack::buffer_view buffer = stream.data();
+char* dataPtr = buffer.as<char>();
+std::size_t dataSize = buffer.size(); // total serialized data size (44 byte).
+```
+
+### Simple Deserialization - 1 (_buffer instantiated with external resource_)
+  ```cpp
+int intArr_[10]{};
+float num_{};
+
+// create `bytepack::buffer_view buffer(..` with a resource to deserialize from.
+bytepack::binary_stream stream(buffer);
+
+stream.read(intArr_);
+stream.read(num_);
+```
+
+### Simple Serialization - 2 (_stack allocated buffer_)
+  ```cpp
+// Variables to serialize
+int intArr[10]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+float num = 29845.221612f;
+
+char data[64]{}; // stack buffer
+bytepack::buffer_view buffer(data);
+bytepack::binary_stream stream(buffer);
+
+stream.write(intArr);
+stream.write(num);
+
+auto buffer = stream.data();
+auto size = buffer.size(); // total serialized data size (44 byte).
+```
