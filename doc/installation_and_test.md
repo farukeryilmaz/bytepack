@@ -24,4 +24,23 @@ git clone --recursive https://github.com/farukeryilmaz/bytepack.git
 > If you cloned non-recursively previously, use `git submodule update --init` to clone the necessary submodules.
 
 ### 3.1 Visual Studio
-(incomplete)
+You can generate Visual Studio Solution (.sln) with CMake and run the test on Visual Studio:
+> Run cmake command under project folder. It generates **BytePack.sln** file under **build** folder.
+- **Visual Studio 2022 version 17:** `cmake -S . -B build -G "Visual Studio 17 2022"`
+- **Visual Studio 2019 version 16:** `cmake -S . -B build -G "Visual Studio 16 2019"`
+
+Or you can directly run test using **CMake** with **MSVC**:
+```console
+cmake -S . -B build -DCMAKE_CXX_STANDARD=20
+cmake --build build --config Release
+cd build
+ctest -C Release
+```
+
+### 3.2 GNU/Linux
+```bash
+cmake -S . -B build
+cmake --build build
+cd build
+ctest
+```
