@@ -84,3 +84,42 @@ TEST_CASE("Basic array types (little-endian)")
 		REQUIRE(charArr[i] == charArr_[i]);
 	}
 }
+
+TEST_CASE("Basic array types - stack buffer (big-endian)")
+{
+	// basic array types to serialize
+	int intArr[15]{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+						11, 12, 13, 14, 15 };
+
+	char charArr[9]{ 'z', 'y', 'x', 'w', 'v', 'u', 't', 's', 'r' };
+
+	double num = 19251293.1923421;
+
+	std::array<char, 232> data{};
+	bytepack::binary_stream stream(bytepack::buffer_view{data});
+
+	stream.write(intArr);
+	stream.write(charArr);
+	stream.write(num);
+
+	// basic array types to deserialize
+	int intArr_[15]{};
+	char charArr_[9]{};
+	double num_{};
+
+	bytepack::binary_stream stream_(bytepack::buffer_view{ data });
+
+	stream_.read(intArr_);
+	stream_.read(charArr_);
+	stream_.read(num_);
+
+	// 60 bytes for the int array, 9 bytes for the char array, 8 bytes for the double
+	// 77 bytes in total
+	REQUIRE(77 == stream.data().size());
+
+	REQUIRE(std::equal(std::begin(intArr), std::end(intArr), std::begin(intArr_)));
+	for (size_t i = 0; i < 9; i++) {
+		REQUIRE(charArr[i] == charArr_[i]);
+	}
+	REQUIRE(num == Approx(num_).epsilon(1e-5));
+}
