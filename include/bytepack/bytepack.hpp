@@ -55,6 +55,11 @@ namespace bytepack {
 		explicit buffer_view(std::string& str) noexcept
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
+		template<typename T, std::size_t N>
+		explicit buffer_view(std::array<T, N>& array) noexcept
+			: data_{ array.data() }, size_{ N * sizeof(T) },
+			ssize_{ to_ssize(N * sizeof(T)) } {}
+
 		/**
 		 * Templated method to get data as the specified type.
 		 *
