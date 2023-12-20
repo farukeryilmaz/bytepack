@@ -32,6 +32,10 @@
 
 namespace bytepack {
 
+	template<typename T>
+	concept SerializableBuffer = std::is_fundamental_v<T>
+		&& std::is_pointer_v<T> == false && std::is_reference_v<T> == false;
+
 	/**
 	 * @class buffer_view
 	 * @brief A mutable class that represents a buffer for holding binary data.
@@ -42,12 +46,12 @@ namespace bytepack {
 	 */
 	class buffer_view {
 	public:
-		template<typename T, std::size_t N>
+		template<typename T, std::size_t N> requires SerializableBuffer<T>
 		explicit constexpr buffer_view(T(&array)[N]) noexcept
 			: data_{ array }, size_{ N * sizeof(T) },
 			ssize_{ to_ssize(N * sizeof(T)) } {}
 
-		template<typename T>
+		template<typename T> requires SerializableBuffer<T>
 		explicit constexpr buffer_view(T* ptr, std::size_t size) noexcept
 			: data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) },
 			ssize_{ to_ssize(size * sizeof(T)) } {}
@@ -55,7 +59,7 @@ namespace bytepack {
 		explicit buffer_view(std::string& str) noexcept
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
-		template<typename T, std::size_t N>
+		template<typename T, std::size_t N> requires SerializableBuffer<T>
 		explicit buffer_view(std::array<T, N>& array) noexcept
 			: data_{ array.data() }, size_{ N * sizeof(T) },
 			ssize_{ to_ssize(N * sizeof(T)) } {}
@@ -70,7 +74,7 @@ namespace bytepack {
 		 * @tparam T The type to which the buffer's data will be cast.
 		 * @return Pointer to the buffer's data cast to the specified type.
 		 */
-		template<typename T>
+		template<typename T> requires SerializableBuffer<T>
 		[[nodiscard]] constexpr T* as() const noexcept {
 			return static_cast<T*>(data_);
 		}
