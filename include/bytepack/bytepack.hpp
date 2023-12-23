@@ -60,7 +60,7 @@ namespace bytepack {
 			: data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) } {}
 
 		template<typename T, std::size_t N> requires SerializableBuffer<T>
-		explicit buffer_view(std::array<T, N>& array) noexcept
+		explicit constexpr buffer_view(std::array<T, N>& array) noexcept
 			: data_{ array.data() }, size_{ N * sizeof(T) },
 			ssize_{ to_ssize(N * sizeof(T)) } {}
 
@@ -88,7 +88,7 @@ namespace bytepack {
 		[[nodiscard]] constexpr operator bool() const noexcept { return data_ && size_ > 0; }
 
 	private:
-		constexpr std::ptrdiff_t to_ssize(const std::size_t size) const noexcept {
+		static constexpr std::ptrdiff_t to_ssize(const std::size_t size) noexcept {
 			using R = std::common_type_t<std::ptrdiff_t, std::make_signed_t<decltype(size)>>;
 			return static_cast<R>(size);
 		}
@@ -131,12 +131,11 @@ namespace bytepack {
 	public:
 		explicit binary_stream(const std::size_t buffer_size) noexcept
 			: buffer_{ new std::uint8_t[buffer_size]{}, buffer_size }, owns_buffer_{ true },
-			current_serialize_index_{ 0 }, current_deserialize_index_{ 0 }
+			write_index_{ 0 }, read_index_{ 0 }
 		{}
 
 		explicit constexpr binary_stream(const bytepack::buffer_view& buffer) noexcept
-			: buffer_{ buffer }, owns_buffer_{ false }, current_serialize_index_{ 0 },
-			current_deserialize_index_{ 0 }
+			: buffer_{ buffer }, owns_buffer_{ false }, write_index_{ 0 }, read_index_{ 0 }
 		{}
 
 		~binary_stream() noexcept {
@@ -151,32 +150,32 @@ namespace bytepack {
 		binary_stream& operator=(binary_stream&&) = delete;
 
 		constexpr void reset() noexcept {
-			current_serialize_index_ = 0;
-			current_deserialize_index_ = 0;
+			write_index_ = 0;
+			read_index_ = 0;
 		}
 
 		[[nodiscard]] bytepack::buffer_view data() const noexcept {
-			return bytepack::buffer_view(buffer_.as<std::uint8_t>(), current_serialize_index_);
+			return bytepack::buffer_view(buffer_.as<std::uint8_t>(), write_index_);
 		}
 
 		template<NetworkSerializableBasic T>
 		bool write(const T& value) noexcept {
-			if (buffer_.size() < (current_serialize_index_ + sizeof(T))) {
+			if (buffer_.size() < (write_index_ + sizeof(T))) {
 				return false;
 			}
 
-			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &value, sizeof(T));
+			std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &value, sizeof(T));
 
 			if constexpr (BufferEndian != std::endian::native && sizeof(T) > 1) {
 				// TODO: htonl/htons/ntohl/ntohs performs better for endianness conversion. However, it
 				// requires platform-specific headers. It is possible to implement hton/ntoh like functions
 				// in the library in a platform-independent way using bit shifts.
 				// Benchmark link: https://quick-bench.com/q/va-kzUk1J1BfvSgR05Z1YPnrJhg
-				std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
-					buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
+				std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
+					buffer_.as<std::uint8_t>() + write_index_ + sizeof(T));
 			}
 
-			current_serialize_index_ += sizeof(T);
+			write_index_ += sizeof(T);
 
 			return true;
 		}
@@ -188,23 +187,23 @@ namespace bytepack {
 			constexpr std::size_t numElements = sizeof(T) / elementSize;
 
 			// Check if there is enough space in the buffer for the entire array
-			if (buffer_.size() < (current_serialize_index_ + sizeof(T))) {
+			if (buffer_.size() < (write_index_ + sizeof(T))) {
 				return false;
 			}
 
 			if constexpr (BufferEndian == std::endian::native || elementSize == 1) {
 				// If the buffer and system endianness match, or each element is one byte,
 				// endianness is irrelevant, so memcpy the entire array at once
-				std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value, sizeof(T));
-				current_serialize_index_ += sizeof(T);
+				std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value, sizeof(T));
+				write_index_ += sizeof(T);
 			}
 			else {
 				// For multi-byte types with differing endianness, handle each element individually
 				for (size_t i = 0; i < numElements; ++i) {
-					std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &value[i], elementSize);
-					std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
-						buffer_.as<std::uint8_t>() + current_serialize_index_ + elementSize);
-					current_serialize_index_ += elementSize;
+					std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &value[i], elementSize);
+					std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
+						buffer_.as<std::uint8_t>() + write_index_ + elementSize);
+					write_index_ += elementSize;
 				}
 			}
 
@@ -213,7 +212,7 @@ namespace bytepack {
 
 		template<typename T, std::size_t N> requires NetworkSerializableBasic<T>
 		bool write(const std::array<T, N>& array) noexcept {
-			if (buffer_.size() < (current_serialize_index_ + N * sizeof(T))) {
+			if (buffer_.size() < (write_index_ + N * sizeof(T))) {
 				// Array elements cannot fit in the remaining buffer space
 				return false;
 			}
@@ -221,15 +220,15 @@ namespace bytepack {
 			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
 				// If the buffer and system endianness match, or each element is one byte,
 				// endianness is irrelevant, so memcpy the entire array at once
-				std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, array.data(), N * sizeof(T));
-				current_serialize_index_ += N * sizeof(T);
+				std::memcpy(buffer_.as<std::uint8_t>() + write_index_, array.data(), N * sizeof(T));
+				write_index_ += N * sizeof(T);
 			}
 			else { // For multi-byte types with differing endianness, handle each element individually
 				for (std::size_t i = 0; i < N; ++i) {
-					std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &array[i], sizeof(T));
-					std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
-						buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
-					current_serialize_index_ += sizeof(T);
+					std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &array[i], sizeof(T));
+					std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
+						buffer_.as<std::uint8_t>() + write_index_ + sizeof(T));
+					write_index_ += sizeof(T);
 				}
 			}
 			return true;
@@ -238,9 +237,9 @@ namespace bytepack {
 		template<IntegralType SizeType = std::size_t, typename T> requires NetworkSerializableBasic<T>
 		bool write(const std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept {
 			const std::size_t size = num_elements.value_or(vector.size());
-			// if `num_elements` is not specified, the std::vector size is serialized as metadata before the vector data
+			// if `num_elements` is not specified, the vector size is serialized as metadata before the vector data
 			if (num_elements == std::nullopt) {
-				if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + size * sizeof(T))) {
+				if (buffer_.size() < (write_index_ + sizeof(SizeType) + size * sizeof(T))) {
 					// Vector size field and its elements cannot fit in the remaining buffer space
 					return false;
 				}
@@ -258,7 +257,7 @@ namespace bytepack {
 				}
 			}
 			else {
-				if (vector.size() < size || buffer_.size() < (current_serialize_index_ + size * sizeof(T))) {
+				if (vector.size() < size || buffer_.size() < (write_index_ + size * sizeof(T))) {
 					return false;
 				}
 			}
@@ -266,15 +265,15 @@ namespace bytepack {
 			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
 				// If the buffer and system endianness match, or each element is one byte,
 				// endianness is irrelevant, so memcpy the entire array at once
-				std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, vector.data(), size * sizeof(T));
-				current_serialize_index_ += size * sizeof(T);
+				std::memcpy(buffer_.as<std::uint8_t>() + write_index_, vector.data(), size * sizeof(T));
+				write_index_ += size * sizeof(T);
 			}
 			else { // For multi-byte types with differing endianness, handle each element individually
 				for (std::size_t i = 0; i < size; ++i) {
-					std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, &vector[i], sizeof(T));
-					std::ranges::reverse(buffer_.as<std::uint8_t>() + current_serialize_index_,
-						buffer_.as<std::uint8_t>() + current_serialize_index_ + sizeof(T));
-					current_serialize_index_ += sizeof(T);
+					std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &vector[i], sizeof(T));
+					std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
+						buffer_.as<std::uint8_t>() + write_index_ + sizeof(T));
+					write_index_ += sizeof(T);
 				}
 			}
 			return true;
@@ -297,11 +296,11 @@ namespace bytepack {
 
 		template<NetworkSerializableBasic T>
 		bool read(T& value) noexcept {
-			if (buffer_.size() < (current_deserialize_index_ + sizeof(T))) {
+			if (buffer_.size() < (read_index_ + sizeof(T))) {
 				return false;
 			}
 
-			std::memcpy(&value, buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
+			std::memcpy(&value, buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
 
 			if constexpr (BufferEndian != std::endian::native && sizeof(T) > 1) {
 				// Using reinterpret_cast to treat 'value' as an array of bytes is safe here because:
@@ -311,7 +310,7 @@ namespace bytepack {
 					reinterpret_cast<std::uint8_t*>(&value) + sizeof(T));
 			}
 
-			current_deserialize_index_ += sizeof(T);
+			read_index_ += sizeof(T);
 
 			return true;
 		}
@@ -323,23 +322,23 @@ namespace bytepack {
 			constexpr std::size_t numElements = sizeof(T) / elementSize;
 
 			// Check if there is enough data in the buffer to read the entire array
-			if (buffer_.size() < (current_deserialize_index_ + sizeof(T))) {
+			if (buffer_.size() < (read_index_ + sizeof(T))) {
 				return false;
 			}
 
 			if constexpr (BufferEndian == std::endian::native || elementSize == 1) {
 				// If the buffer and system endianness match, or each element is one byte,
 				// endianness is irrelevant, so memcpy the entire array at once
-				std::memcpy(value, buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
-				current_deserialize_index_ += sizeof(T);
+				std::memcpy(value, buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
+				read_index_ += sizeof(T);
 			}
 			else {
 				// For multi-byte types with differing endianness, handle each element individually
 				for (size_t i = 0; i < numElements; ++i) {
-					std::memcpy(&value[i], buffer_.as<std::uint8_t>() + current_deserialize_index_, elementSize);
+					std::memcpy(&value[i], buffer_.as<std::uint8_t>() + read_index_, elementSize);
 					std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&value[i]),
 						reinterpret_cast<std::uint8_t*>(&value[i]) + elementSize);
-					current_deserialize_index_ += elementSize;
+					read_index_ += elementSize;
 				}
 			}
 
@@ -349,23 +348,23 @@ namespace bytepack {
 		template<typename T, std::size_t N> requires NetworkSerializableBasic<T>
 		bool read(std::array<T, N>& array) noexcept {
 			// Check if there is enough data in the buffer to read the entire array
-			if (buffer_.size() < (current_deserialize_index_ + N * sizeof(T))) {
+			if (buffer_.size() < (read_index_ + N * sizeof(T))) {
 				return false;
 			}
 
 			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
 				// If the buffer and system endianness match, or each element is one byte,
 				// endianness is irrelevant, so memcpy the entire array at once
-				std::memcpy(array.data(), buffer_.as<std::uint8_t>() + current_deserialize_index_, N * sizeof(T));
-				current_deserialize_index_ += N * sizeof(T);
+				std::memcpy(array.data(), buffer_.as<std::uint8_t>() + read_index_, N * sizeof(T));
+				read_index_ += N * sizeof(T);
 			}
 			else {
 				// For multi-byte types with differing endianness, handle each element individually
 				for (size_t i = 0; i < N; ++i) {
-					std::memcpy(&array[i], buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
+					std::memcpy(&array[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
 					std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&array[i]),
 						reinterpret_cast<std::uint8_t*>(&array[i]) + sizeof(T));
-					current_deserialize_index_ += sizeof(T);
+					read_index_ += sizeof(T);
 				}
 			}
 
@@ -388,7 +387,7 @@ namespace bytepack {
 				size = num_elements.value();
 			}
 
-			if (buffer_.size() < (current_deserialize_index_ + size * sizeof(T))) {
+			if (buffer_.size() < (read_index_ + size * sizeof(T))) {
 				return false;
 			}
 
@@ -397,15 +396,15 @@ namespace bytepack {
 			if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
 				// If the buffer and system endianness match, or each element is one byte,
 				// endianness is irrelevant, so memcpy the entire array at once
-				std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + current_deserialize_index_, size * sizeof(T));
-				current_deserialize_index_ += size * sizeof(T);
+				std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + read_index_, size * sizeof(T));
+				read_index_ += size * sizeof(T);
 			}
 			else { // For multi-byte types with differing endianness, handle each element individually
 				for (std::size_t i = 0; i < size; ++i) {
-					std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(T));
+					std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
 					std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&vector[i]),
 						reinterpret_cast<std::uint8_t*>(&vector[i]) + sizeof(T));
-					current_deserialize_index_ += sizeof(T);
+					read_index_ += sizeof(T);
 				}
 			}
 			return true;
@@ -429,7 +428,7 @@ namespace bytepack {
 				return false;
 			}
 
-			if (buffer_.size() < (current_serialize_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
+			if (buffer_.size() < (write_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
 				// String data and its length field cannot fit in the remaining buffer space
 				return false;
 			}
@@ -439,8 +438,8 @@ namespace bytepack {
 				return false;
 			}
 
-			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value.data(), value.length());
-			current_serialize_index_ += value.length();
+			std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), value.length());
+			write_index_ += value.length();
 
 			return true;
 		}
@@ -449,26 +448,26 @@ namespace bytepack {
 		bool write_string_null_terminated(const StringType& value) noexcept {
 			const std::size_t str_length = value.length() + 1; // +1 for null terminator
 
-			if (buffer_.size() < (current_serialize_index_ + str_length)) {
+			if (buffer_.size() < (write_index_ + str_length)) {
 				return false;
 			}
 
-			std::memcpy(buffer_.as<std::uint8_t>() + current_serialize_index_, value.data(), str_length - 1);
-			buffer_.as<std::uint8_t>()[current_serialize_index_ + str_length - 1] = '\0'; // null terminator
-			current_serialize_index_ += str_length;
+			std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), str_length - 1);
+			buffer_.as<std::uint8_t>()[write_index_ + str_length - 1] = '\0'; // null terminator
+			write_index_ += str_length;
 
 			return true;
 		}
 
 		template<IntegralType SizeType = std::size_t, SerializableString StringType>
 		bool read_string_size_prefixed(StringType& value) noexcept {
-			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType))) {
+			if (buffer_.size() < (read_index_ + sizeof(SizeType))) {
 				return false;
 			}
 
 			// Temporarily read string length without incrementing deserialize index
 			SizeType str_length{};
-			std::memcpy(&str_length, buffer_.as<std::uint8_t>() + current_deserialize_index_, sizeof(SizeType));
+			std::memcpy(&str_length, buffer_.as<std::uint8_t>() + read_index_, sizeof(SizeType));
 
 			// Handle endianness for the string length
 			if constexpr (BufferEndian != std::endian::native && sizeof(SizeType) > 1) {
@@ -481,23 +480,23 @@ namespace bytepack {
 				return false;
 			}
 
-			if (buffer_.size() < (current_deserialize_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
+			if (buffer_.size() < (read_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
 				return false;
 			}
 
 			// Alternative approach in case of performance issues: first resize the string to the required size
 			// using `value.resize(str_length)` and then copy the string data using `std::memcpy(value.data(), ...)`
-			value.assign(buffer_.as<char>() + sizeof(SizeType) + current_deserialize_index_,
+			value.assign(buffer_.as<char>() + sizeof(SizeType) + read_index_,
 				static_cast<std::size_t>(str_length));
 
-			current_deserialize_index_ += sizeof(SizeType) + static_cast<std::size_t>(str_length);
+			read_index_ += sizeof(SizeType) + static_cast<std::size_t>(str_length);
 
 			return true;
 		}
 
 		template<SerializableString StringType>
 		bool read_string_null_terminated(StringType& value) noexcept {
-			std::size_t end_index = current_deserialize_index_;
+			std::size_t end_index = read_index_;
 			// Find null terminator in the buffer starting from the current deserialize index
 			while (end_index < buffer_.size() && buffer_.as<char>()[end_index] != '\0') {
 				++end_index; // Move to next byte
@@ -507,10 +506,10 @@ namespace bytepack {
 				return false; // Null terminator not found
 			}
 
-			std::size_t str_length = end_index - current_deserialize_index_;
-			value.assign(buffer_.as<char>() + current_deserialize_index_, str_length);
+			std::size_t str_length = end_index - read_index_;
+			value.assign(buffer_.as<char>() + read_index_, str_length);
 
-			current_deserialize_index_ += str_length + 1; // +1 for null terminator
+			read_index_ += str_length + 1; // +1 for null terminator
 
 			return true;
 		}
@@ -522,8 +521,8 @@ namespace bytepack {
 		// TODO: Consider alternative ownership models, and design to handle external buffers
 		bool owns_buffer_;
 
-		std::size_t current_serialize_index_;
-		std::size_t current_deserialize_index_;
+		std::size_t write_index_;
+		std::size_t read_index_;
 	};
 
 } // namespace bytepack
