@@ -38,7 +38,7 @@ concept SerializableBuffer =
 
 /**
  * @class buffer_view
- * @brief A mutable class that represents a buffer for holding binary data.
+ * @brief A non-owning mutable class that represents a buffer to provide an interface to access binary data
  *
  * The buffer_view class encapsulates a pointer to data and its size. It is designed to
  * provide an interface to access binary data without owning it. This class does not
@@ -55,7 +55,7 @@ public:
 
   template<typename T>
   requires SerializableBuffer<T>
-  explicit constexpr buffer_view(T* ptr, std::size_t size) noexcept
+  explicit constexpr buffer_view(T* ptr, const std::size_t size) noexcept
     : data_{ static_cast<void*>(ptr) }, size_{ size * sizeof(T) }, ssize_{ to_ssize(size * sizeof(T)) }
   {}
 
@@ -210,7 +210,7 @@ public:
       write_index_ += sizeof(T);
     } else {
       // For multi-byte types with differing endianness, handle each element individually
-      for (size_t i = 0; i < numElements; ++i) {
+      for (std::size_t i = 0; i < numElements; ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &value[i], elementSize);
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
                              buffer_.as<std::uint8_t>() + write_index_ + elementSize);
@@ -246,7 +246,7 @@ public:
     return true;
   }
 
-  template<IntegralType SizeType = std::size_t, typename T>
+  template<IntegralType SizeType = std::uint32_t, typename T>
   requires NetworkSerializableBasic<T>
   bool write(const std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept
   {
@@ -290,7 +290,7 @@ public:
     return true;
   }
 
-  template<IntegralType SizeType = std::size_t, SerializableString StringType>
+  template<IntegralType SizeType = std::uint32_t, SerializableString StringType>
   bool write(const StringType& value, const bytepack::StringMode mode = bytepack::StringMode::SizePrefixed) noexcept
   {
     if (mode == StringMode::NullTerminated) {
@@ -385,7 +385,7 @@ public:
     return true;
   }
 
-  template<IntegralType SizeType = std::size_t, typename T>
+  template<IntegralType SizeType = std::uint32_t, typename T>
   requires NetworkSerializableBasic<T>
   bool read(std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept
   {
@@ -424,7 +424,7 @@ public:
     return true;
   }
 
-  template<IntegralType SizeType = std::size_t>
+  template<IntegralType SizeType = std::uint32_t>
   bool read(std::string& value, const bytepack::StringMode mode = bytepack::StringMode::SizePrefixed) noexcept
   {
     if (mode == StringMode::NullTerminated) {
@@ -434,7 +434,7 @@ public:
   }
 
 private:
-  template<IntegralType SizeType = std::size_t, SerializableString StringType>
+  template<IntegralType SizeType = std::uint32_t, SerializableString StringType>
   bool write_string_size_prefixed(const StringType& value) noexcept
   {
     const SizeType str_length = static_cast<SizeType>(value.length());
@@ -443,7 +443,7 @@ private:
       return false;
     }
 
-    if (buffer_.size() < (write_index_ + sizeof(SizeType) + static_cast<std::size_t>(str_length))) {
+    if (buffer_.size() < (write_index_ + sizeof(SizeType) + value.length())) {
       // String data and its length field cannot fit in the remaining buffer space
       return false;
     }
@@ -469,13 +469,13 @@ private:
     }
 
     std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), str_length - 1);
-    buffer_.as<std::uint8_t>()[write_index_ + str_length - 1] = '\0'; // null terminator
+    buffer_.as<char>()[write_index_ + str_length - 1] = '\0'; // null terminator
     write_index_ += str_length;
 
     return true;
   }
 
-  template<IntegralType SizeType = std::size_t, SerializableString StringType>
+  template<IntegralType SizeType = std::uint32_t, SerializableString StringType>
   bool read_string_size_prefixed(StringType& value) noexcept
   {
     if (buffer_.size() < (read_index_ + sizeof(SizeType))) {
@@ -523,7 +523,7 @@ private:
       return false; // Null terminator not found
     }
 
-    std::size_t str_length = end_index - read_index_;
+    const std::size_t str_length = end_index - read_index_;
     value.assign(buffer_.as<char>() + read_index_, str_length);
 
     read_index_ += str_length + 1; // +1 for null terminator
