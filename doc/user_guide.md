@@ -11,12 +11,20 @@ This document provides an overview of the `BytePack` binary serialization librar
 - **Standard Strings:** _`std::string` and `std::string_view`_
 - **C-style arrays** such as _`char[]`, `int[]`, `double[]`, etc._
 
-## 3. Classes
+## 3. Limitations
+1. **Architecture-Dependent Type Sizes:** Types like `std::size_t` vary in size across different architectures. For instance, `std::size_t` is **8 bytes on 64-bit systems** but **4 bytes on 32-bit systems**.
+2. **Platform-Specific Type Sizes:** Certain types, such as `long int` and `unsigned long int`, have different sizes on different platforms. They are **8 bytes on Windows** but only **4 bytes on GNU/Linux** systems, even when both platforms are 64-bit.
+
+These variations can cause inconsistent behavior in serialize/deserialize processes across different platforms and architectures.
+### 3.1 Recommendations/Solutions
+For consistent cross-platform compatibility, it's recommended to use `fixed-width integer types` from `<cstdint>` (e.g., `std::uint32_t`, `std::int64_t`) to ensure predictable data sizes during serialization and deserialization.
+
+## 4. Classes
 > **namespace**: Library specific implementations (class, concept, etc.) are under `bytepack` namespace.
 - `binary_stream`: The main class for serializing and deserializing data.
 - `buffer_view`: A non-owning mutable class that represents a buffer to provide an interface to access binary data without owning it. It encapsulates a pointer to data and its size. It does not manage the lifetime of the underlying data.
 
-## bytepack::**binary_stream**
+## 4.1 `bytepack::binary_stream`
 The `binary_stream` class can be instantiated either with a non-owning buffer (_buffer_view_) or a specified size in bytes. When initialized with a size, the binary_stream autonomously allocates and manages the buffer's lifecycle. However, if it is constructed with a user-supplied buffer, it is the user's responsibility to ensure the proper deletion or freeing of the buffer.
 
 ### Example Instantiation:
@@ -34,11 +42,11 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
     - You can access underlying data pointer and serialized data size with `as<T>()` and `size()`. Read `bytepack::buffer_view` section below.
 
 ### Serialization Methods:
-> _one method to serialize them all: `stream.write(var);`_
+> _One method to serialize them all: `stream.write(var);`_
 - basic types: `stream.write(value);`
 - C-style arrays: `stream.write(arr);`
 - _std::string_ and _std:string_view_:
-  - Serialize string with size prefixed (Prepends the string length. Default type of prefix is _std::size_t_): 
+  - Serialize string with size prefixed (Prepends the string length. Default type of prefix is _std::uint32_t_):
     - `stream.write(str);`
   - Serialize string with size prefixed (Prepends the string length. Specify type of prefix): 
     - e.g. `stream.write<std::uint8_t>(str);`
@@ -46,7 +54,7 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
     - `stream.write(str, bytepack::StringMode::NullTerminated);`
 - _std::array_: `stream.write(arr);`
 - _std::vector_:
-  - Serialize vector with size prefixed (default type of prefix is _std::size_t_): 
+  - Serialize vector with size prefixed (default type of prefix is _std::uint32_t_):
     - `stream.write(vec);`
   - Serialize vector with size prefixed (specify type of prefix): 
     - e.g. `stream.write<std::uint16_t>(vec);`
@@ -54,11 +62,11 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
     - e.g. `stream.write(vec, 2);`
 
 ### Deserialize Methods:
-> _one method to deserialize them all: `stream.read(var);`_
+> _One method to deserialize them all: `stream.read(var);`_
 - basic types: `stream.read(value);`
 - C-style arrays: `stream.read(arr);`
 - _std::string_ and _std:string_view_:
-  - Deserialize size prefixed strings (default type of prefix is _std::size_t_): 
+  - Deserialize size prefixed strings (default type of prefix is _std::uint32_t_):
     - `stream.read(str);`
   - Deserialize size prefixed strings (specify type of prefix): 
     - e.g. `stream.read<std::uint8_t>(str);`
@@ -66,7 +74,7 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
     - `stream.read(str, bytepack::StringMode::NullTerminated);`
 - _std::array_: `stream.read(arr);`
 - _std::vector_:
-  - Deserialize size prefixed vectors (default type of prefix is _std::size_t_): 
+  - Deserialize size prefixed vectors (default type of prefix is _std::uint32_t_):
     - `stream.read(vec);`
   - Deserialize size prefixed vectors (specify type of prefix): 
     - e.g. `stream.read<std::uint16_t>(vec);`
@@ -77,7 +85,7 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
 - `reset()`:
   - The `reset` method resets the internal indices used for serialization and deserialization within the `binary_stream`. This method offers significant advantages beyond just resetting indices, especially in the context of network or socket communication. When using a `buffer_view` to hold a non-owning mutable reference to a buffer resource (like a `char*` array) for socket/network communication, `reset` enables efficient and continuous data processing without the need to create new `binary_stream` instances. Each time new data arrives through the network, the `binary_stream` can be reset to start reading from the beginning of the same `buffer_view`. This approach is particularly useful for handling streaming data or processing multiple messages using the same buffer, thereby optimizing resource usage and simplifying buffer management in networked applications. For example, after processing a chunk of incoming data, calling `reset()` prepares the `binary_stream` to handle the next chunk using the same underlying buffer, ensuring seamless and efficient data handling in continuous communication scenarios.
 
-## bytepack::**buffer_view**
+## 4.2 `bytepack::buffer_view`
 ### Example Instantiation:
 - From C-style Array (_stack buffer_):
   1. `char data[1024]{};`
@@ -106,7 +114,7 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
   - Checks if the buffer is valid (non-null and size greater than 0).
   - Example: `if (buffer) { /* Buffer is valid */ }`
 
-## Example Codes
+## 5. Example Codes
 ### Simple Serialization - 1 (_default heap allocated buffer_)
   ```cpp
 // Variables to serialize
