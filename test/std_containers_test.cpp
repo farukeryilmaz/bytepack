@@ -42,6 +42,13 @@ TEST_CASE("Std containers - vector test (big-endian)")
 	bstream_.read(vec3_, 5);
 	bstream_.read(vec4_, 36);
 
+	// 4 bytes for the size of the vector, 20 bytes for the vector itself
+	// 1 bytes for the custom size of the vector, 10 bytes for the vector itself
+	// fixed size of 5 elements, 40 bytes for the vector itself
+	// fixed size of 36 elements, 144 bytes for the vector itself
+	// 219 bytes in total
+	REQUIRE(219 == buffer.size());
+
 	REQUIRE(vec == vec_);
 	REQUIRE(vec2 == vec2_);
 	REQUIRE(vec3 == vec3_);

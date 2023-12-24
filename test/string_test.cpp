@@ -22,10 +22,10 @@ TEST_CASE("String and string view (big-endian)")
 	bstream_.read(str_);
 	bstream_.read<short int>(str2_);
 
-	// 8 bytes for the size of the string, 12 bytes for the string itself
+	// 4 bytes for the size of the string, 12 bytes for the string itself
 	// 2 bytes for the custom size of the string_view, 16 bytes for the string_view itself
-	// 38 bytes in total
-	REQUIRE(38 == buffer.size());
+	// 34 bytes in total
+	REQUIRE(34 == buffer.size());
 
 	REQUIRE(str == str_);
 	REQUIRE(str2 == str2_);
@@ -41,7 +41,7 @@ TEST_CASE("String and string view (little-endian)")
 
 	bstream.write(str);
 	bstream.write(str2);
-	bstream.write<std::uint32_t>(str3);
+	bstream.write<std::uint8_t>(str3);
 
 	std::string str_{};
 	std::string str2_{};
@@ -52,13 +52,13 @@ TEST_CASE("String and string view (little-endian)")
 
 	bstream_.read(str_);
 	bstream_.read(str2_, bytepack::StringMode::NullTerminated);
-	bstream_.read<std::uint32_t>(str3_);
+	bstream_.read<std::uint8_t>(str3_);
 
-	// 8 bytes for the size of the string, 15 bytes for the string itself
+	// 4 bytes for the size of the string, 15 bytes for the string itself
 	// 17 bytes for the string (char[]), (17th byte for the null terminator)
-	// 4 bytes for the custom size of the string_view, 22 bytes for the string_view itself
-	// 66 bytes in total
-	REQUIRE(66 == buffer.size());
+	// 1 bytes for the custom size of the string_view, 22 bytes for the string_view itself
+	// 59 bytes in total
+	REQUIRE(59 == buffer.size());
 
 	REQUIRE(str == str_);
 	REQUIRE(str2 == str2_);
@@ -97,12 +97,12 @@ TEST_CASE("String, string view and fundamental types mixed (big-endian)")
 	bstream_.read(num3_);
 
 	// 8 bytes for double,
-	// 8 bytes for the size of the string, 12 bytes for the string itself,
+	// 4 bytes for the size of the string, 12 bytes for the string itself,
 	// 4 bytes for the uint32_t,
 	// 2 bytes for the custom size of the string_view, 16 bytes for the string_view itself,
 	// 4 bytes for the float
-	// 54 bytes in total
-	REQUIRE(54 == buffer.size());
+	// 50 bytes in total
+	REQUIRE(50 == buffer.size());
 
 	REQUIRE(num1 == Approx(num1_).epsilon(1e-7));
 	REQUIRE(str == str_);
