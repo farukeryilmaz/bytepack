@@ -50,7 +50,7 @@ TEST_CASE("String and string view (little-endian)")
   bytepack::binary_stream<std::endian::little> bstream_(buffer);
 
   bstream_.read(str_);
-  bstream_.read(str2_, bytepack::StringMode::NullTerminated);
+  bstream_.read<bytepack::StringMode::NullTerm>(str2_);
   bstream_.read<std::uint8_t>(str3_);
 
   // 4 bytes for the size of the string, 15 bytes for the string itself
@@ -117,7 +117,7 @@ TEST_CASE("String and string view null terminated (little-endian)")
 
   bytepack::binary_stream<std::endian::little> bstream(32);
 
-  bstream.write(str, bytepack::StringMode::NullTerminated);
+  bstream.write<bytepack::StringMode::NullTerm>(str);
   bstream.write(num1);
 
   std::string str_{};
@@ -126,7 +126,7 @@ TEST_CASE("String and string view null terminated (little-endian)")
   auto buffer = bstream.data();
   bytepack::binary_stream<std::endian::little> bstream_(buffer);
 
-  bstream_.read(str_, bytepack::StringMode::NullTerminated);
+  bstream_.read<bytepack::StringMode::NullTerm>(str_);
   bstream_.read(num1_);
 
   // 15 bytes for the string, 1 byte for the null terminator '\0'

@@ -19,8 +19,8 @@ TEST_CASE("Std containers - vector test (big-endian)")
 
   bstream.write(vec);
   bstream.write<std::uint8_t>(vec2);
-  bstream.write(vec3, 5);
-  bstream.write(vec4, 36);
+  bstream.write<5>(vec3);
+  bstream.write<36>(vec4);
 
   // std::vector to deserialize
   std::vector<int> vec_{};
@@ -33,8 +33,8 @@ TEST_CASE("Std containers - vector test (big-endian)")
 
   bstream_.read(vec_);
   bstream_.read<std::uint8_t>(vec2_);
-  bstream_.read(vec3_, 5);
-  bstream_.read(vec4_, 36);
+  bstream_.read<5>(vec3_);
+  bstream_.read<36>(vec4_);
 
   // 4 bytes for the size of the vector, 20 bytes for the vector itself
   // 1 bytes for the custom size of the vector, 10 bytes for the vector itself
@@ -104,7 +104,7 @@ TEST_CASE("Std containers - vector/array mixed test (big-endian)")
   bytepack::binary_stream bstream(1024);
 
   // write vector with given size eliminating the need to write the size metadata
-  bstream.write(vec, 5);
+  bstream.write<5>(vec);
 
   bstream.write(vec2);
   bstream.write(arr);
@@ -162,7 +162,7 @@ TEST_CASE("Std containers - vector/array mixed test (little-endian)")
   bytepack::binary_stream<std::endian::little> bstream(1024);
 
   // write vector with given size eliminating the need to write the size metadata
-  bstream.write(vec, 5);
+  bstream.write<5>(vec);
 
   bstream.write(vec2);
   bstream.write(arr);
