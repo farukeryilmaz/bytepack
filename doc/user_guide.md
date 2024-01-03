@@ -16,7 +16,7 @@ This document provides an overview of the `BytePack` binary serialization librar
 2. **Platform-Specific Type Sizes:** Certain types, such as `long int` and `unsigned long int`, have different sizes on different platforms. They are **8 bytes on Windows** but only **4 bytes on GNU/Linux** systems, even when both platforms are 64-bit.
 
 These variations can cause inconsistent behavior in serialize/deserialize processes across different platforms and architectures.
-### 3.1 Recommendations/Solutions
+### 3.1 Recommendations
 For consistent cross-platform compatibility, it's recommended to use `fixed-width integer types` from `<cstdint>` (e.g., `std::uint32_t`, `std::int64_t`) to ensure predictable data sizes during serialization and deserialization.
 
 ## 4. Classes
@@ -31,7 +31,7 @@ The `binary_stream` class can be instantiated either with a non-owning buffer (_
 Default buffer **endianness** is `big-endian`. If you want to configure as `little-endian`, instantiate as `bytepack::binary_stream<std::endian::little> stream(..`
 - Create a stream with a new internal buffer of the specified size in bytes:
   1. `bytepack::binary_stream stream(1024);`
-- Create a stream using a user-supplied buffer (_read buffer_view class below_):
+- Create a stream using a user-supplied buffer (_read buffer_view class section below_):
   1. `bytepack::buffer_view buffer(ptr, size);`
   2. `bytepack::binary_stream stream(buffer);`
 
@@ -42,48 +42,60 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
     - You can access underlying data pointer and serialized data size with `as<T>()` and `size()`. Read `bytepack::buffer_view` section below.
 
 ### Serialization Methods:
-> _One method to serialize them all: `stream.write(var);`_
+> _One method to serialize them all: `stream.write(var);`_  
+> You can serialize multiple variables in a single call: `stream.write(var1, var2, var3, ...);`
 - basic types: `stream.write(value);`
 - C-style arrays: `stream.write(arr);`
 - _std::string_ and _std:string_view_:
   - Serialize string with size prefixed (Prepends the string length. Default type of prefix is _std::uint32_t_):
     - `stream.write(str);`
-  - Serialize string with size prefixed (Prepends the string length. Specify type of prefix): 
+  - Serialize string with size prefixed. Specify type of prefix. (Prepends the string length.):
     - e.g. `stream.write<std::uint8_t>(str);`
-  - Serialize string with null terminated (writes `'\0'` to buffer after the string):
-    - `stream.write(str, bytepack::StringMode::NullTerminated);`
+  - Serialize string with null terminator (Appends `'\0'` to the end of the string):
+    - `stream.write<bytepack::StringMode::NullTerm>(str);`
+  - Serialize string with given size (no size prefix):
+    - e.g. `stream.write<10>(str);`
+    - Note-1: If the string size is greater than the given size, it will be truncated.
+    - Note-2: If the string size is less than the given size, it will be padded with `'\0'`.
 - _std::array_: `stream.write(arr);`
 - _std::vector_:
-  - Serialize vector with size prefixed (default type of prefix is _std::uint32_t_):
+  - Serialize vector with size prefixed (Prepends the vector size. Default type of prefix is _std::uint32_t_):
     - `stream.write(vec);`
-  - Serialize vector with size prefixed (specify type of prefix): 
+  - Serialize vector with size prefixed. Specify type of prefix. (Prepends the vector size.):
     - e.g. `stream.write<std::uint16_t>(vec);`
   - Serialize vector with fixed size (no size prefix): 
-    - e.g. `stream.write(vec, 2);`
+    - e.g. `stream.write<5>(vec);`
 
 ### Deserialize Methods:
-> _One method to deserialize them all: `stream.read(var);`_
+> _One method to deserialize them all: `stream.read(var);`_  
+> You can deserialize multiple variables in a single call: `stream.read(var1, var2, var3, ...);`
 - basic types: `stream.read(value);`
 - C-style arrays: `stream.read(arr);`
 - _std::string_ and _std:string_view_:
   - Deserialize size prefixed strings (default type of prefix is _std::uint32_t_):
     - `stream.read(str);`
-  - Deserialize size prefixed strings (specify type of prefix): 
+  - Deserialize size prefixed strings. Specify type of prefix:
     - e.g. `stream.read<std::uint8_t>(str);`
   - Deserialize null terminated strings (reads until `'\0'` is reached. _It won't exceed the buffer_):
-    - `stream.read(str, bytepack::StringMode::NullTerminated);`
+    - `stream.read<bytepack::StringMode::NullTerm>(str_);`
+  - Deserialize fixed size strings:
+    - e.g. `stream.read<10>(str);`
+    - Note-1: If the serialized string size is greater than the given read size, it will be truncated and later read calls will result in incorrect deserialization since the internal indices will be out of sync.
+    - Note-2: If the serialized string is padded with `'\0'` characters, they will be removed from the end of the string. This does not affect the internal indices and serialization/deserialization process.
+    - Note-3: These Behaviors are applied only to _std::string_ and _std::string_view_ types. C-style strings are not affected by these behaviors.
+    - Note-4: You can also use `bytepack::StringMode::NullTerm` to read null terminated `C-style strings (char[])` as `std::string` type.
 - _std::array_: `stream.read(arr);`
 - _std::vector_:
   - Deserialize size prefixed vectors (default type of prefix is _std::uint32_t_):
     - `stream.read(vec);`
-  - Deserialize size prefixed vectors (specify type of prefix): 
+  - Deserialize size prefixed vectors. Specify type of prefix:
     - e.g. `stream.read<std::uint16_t>(vec);`
   - Deserialize fixed size vectors (no size prefix): 
-    - e.g. `stream.read(vec, 2);`
+    - e.g. `stream.read<5>(vec);`
 
 ### Other Methods:
 - `reset()`:
-  - The `reset` method resets the internal indices used for serialization and deserialization within the `binary_stream`. This method offers significant advantages beyond just resetting indices, especially in the context of network or socket communication. When using a `buffer_view` to hold a non-owning mutable reference to a buffer resource (like a `char*` array) for socket/network communication, `reset` enables efficient and continuous data processing without the need to create new `binary_stream` instances. Each time new data arrives through the network, the `binary_stream` can be reset to start reading from the beginning of the same `buffer_view`. This approach is particularly useful for handling streaming data or processing multiple messages using the same buffer, thereby optimizing resource usage and simplifying buffer management in networked applications. For example, after processing a chunk of incoming data, calling `reset()` prepares the `binary_stream` to handle the next chunk using the same underlying buffer, ensuring seamless and efficient data handling in continuous communication scenarios.
+  - The `reset` method in the `binary_stream` resets internal indices for serialization and deserialization. It's especially beneficial for network/socket communication. With reset, you can efficiently process both incoming and outgoing data without creating new `binary_stream` instances. This is useful for streaming data or handling multiple messages with the same buffer, optimizing resource usage and simplifying buffer management in networked applications.
 
 ## 4.2 `bytepack::buffer_view`
 ### Example Instantiation:
@@ -96,6 +108,10 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
 - From _std::string_:
   1. `std::string str = "...`
   2. `bytepack::buffer_view buffer(str);`
+- From _std::array_:
+  1. `std::array<char, 1024> arr{};`
+  2. `bytepack::buffer_view buffer(arr);`
+  3. or `bytepack::buffer_view buffer(arr.data(), size);`
 
 ### Methods:
 - `as<T>()`:
