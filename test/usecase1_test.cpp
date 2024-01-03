@@ -69,19 +69,9 @@ TEST_CASE("Example 2 - mixed data serialization and deserialization (big-endian)
     double value;           // Measured value
     char sensor_id[16];     // Identifier of the sensor
 
-    void serialize(bytepack::binary_stream<>& stream) const
-    {
-      stream.write(timestamp);
-      stream.write(value);
-      stream.write(sensor_id);
-    }
+    void serialize(bytepack::binary_stream<>& stream) const { stream.write(timestamp, value, sensor_id); }
 
-    void deserialize(bytepack::binary_stream<>& stream)
-    {
-      stream.read(timestamp);
-      stream.read(value);
-      stream.read(sensor_id);
-    }
+    void deserialize(bytepack::binary_stream<>& stream) { stream.read(timestamp, value, sensor_id); }
   };
 
   SensorData sensorData{ 1701037875, 23.6, "Sensor-001" };
@@ -97,4 +87,50 @@ TEST_CASE("Example 2 - mixed data serialization and deserialization (big-endian)
   REQUIRE(sensorData.timestamp == sensorData_.timestamp);
   REQUIRE(sensorData.value == Approx(sensorData_.value).epsilon(1e-3));
   REQUIRE_THAT(sensorData.sensor_id, Catch::Matchers::Equals(sensorData_.sensor_id));
+}
+
+TEST_CASE("Example 3 - Complex Data Serialization and Deserialization")
+{
+  struct ComplexData
+  {
+    std::uint32_t id;
+    std::string name;
+    double temperature;
+    std::vector<int> measurements;
+    char category;
+
+    void serialize(bytepack::binary_stream<>& stream) const
+    {
+      stream.write(id, name);
+      stream.write(temperature);
+      stream.write(measurements, category);
+    }
+
+    void deserialize(bytepack::binary_stream<>& stream)
+    {
+      stream.read(id, name, temperature);
+      stream.read(measurements, category);
+    }
+  };
+
+  ComplexData originalData{
+    12345,              // id
+    "SensorX",          // name
+    36.7,               // temperature
+    { 10, 20, 30, 40 }, // measurements
+    'A'                 // category
+  };
+
+  bytepack::binary_stream serializationStream(1024);
+  originalData.serialize(serializationStream);
+
+  bytepack::binary_stream deserializationStream(serializationStream.data());
+
+  ComplexData deserializedData{};
+  deserializedData.deserialize(deserializationStream);
+
+  REQUIRE(originalData.id == deserializedData.id);
+  REQUIRE(originalData.name == deserializedData.name);
+  REQUIRE(originalData.temperature == Approx(deserializedData.temperature).epsilon(1e-3));
+  REQUIRE(originalData.measurements == deserializedData.measurements);
 }
