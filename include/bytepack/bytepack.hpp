@@ -115,14 +115,21 @@ template<typename T>
 concept NetworkSerializableBasicArray = std::is_array_v<T> && NetworkSerializableBasic<std::remove_extent_t<T>>;
 
 template<typename T>
-concept SerializableString = std::same_as<T, std::string> || std::same_as<T, std::string_view>;
+concept NetworkSerializableVector = std::is_same_v<T, std::vector<typename T::value_type, typename T::allocator_type>>
+                                    && NetworkSerializableBasic<typename T::value_type>;
+template<typename T>
+concept NetworkSerializableString = std::same_as<T, std::string> || std::same_as<T, std::string_view>;
+
+template<typename T>
+concept NetworkSerializableType = NetworkSerializableBasic<T> || NetworkSerializableBasicArray<T>
+                                  || NetworkSerializableString<T> || NetworkSerializableVector<T>;
 
 template<typename T>
 concept IntegralType = std::is_integral_v<T>;
 
 enum class StringMode {
-  SizePrefixed,  // String length is serialized as metadata before the string data (default)
-  NullTerminated // Null terminator is appended to the string data instead of prepending string length metadata
+  Default, // String length is serialized as metadata before the string data (default)
+  NullTerm // Null terminator is appended to the string data instead of prepending string length metadata
 };
 
 /**
@@ -235,7 +242,8 @@ public:
       // endianness is irrelevant, so memcpy the entire array at once
       std::memcpy(buffer_.as<std::uint8_t>() + write_index_, array.data(), N * sizeof(T));
       write_index_ += N * sizeof(T);
-    } else { // For multi-byte types with differing endianness, handle each element individually
+    } else {
+      // For multi-byte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < N; ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &array[i], sizeof(T));
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
@@ -248,39 +256,33 @@ public:
 
   template<IntegralType SizeType = std::uint32_t, typename T>
   requires NetworkSerializableBasic<T>
-  bool write(const std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept
+  bool write(const std::vector<T>& vector) noexcept
   {
-    const std::size_t size = num_elements.value_or(vector.size());
-    // if `num_elements` is not specified, the vector size is serialized as metadata before the vector data
-    if (num_elements == std::nullopt) {
-      if (buffer_.size() < (write_index_ + sizeof(SizeType) + size * sizeof(T))) {
-        // Vector size field and its elements cannot fit in the remaining buffer space
-        return false;
-      }
+    // the vector size is serialized as metadata before the vector data
+    if (buffer_.size() < (write_index_ + sizeof(SizeType) + vector.size() * sizeof(T))) {
+      // Vector size field and its elements cannot fit in the remaining buffer space
+      return false;
+    }
 
-      const SizeType size_custom = static_cast<SizeType>(size);
-      if ((std::is_signed_v<SizeType> && size_custom < 0) || static_cast<std::size_t>(size_custom) != size) {
-        // Overflow or incorrect size type
-        return false;
-      }
+    const SizeType size_custom = static_cast<SizeType>(vector.size());
+    if ((std::is_signed_v<SizeType> && size_custom < 0) || static_cast<std::size_t>(size_custom) != vector.size()) {
+      // Overflow or incorrect size type
+      return false;
+    }
 
-      // Write vector size field first (before the vector data)
-      if (write(size_custom) == false) {
-        return false;
-      }
-    } else {
-      if (vector.size() < size || buffer_.size() < (write_index_ + size * sizeof(T))) {
-        return false;
-      }
+    // Write vector size field first (before the vector data)
+    if (write(size_custom) == false) {
+      return false;
     }
 
     if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
       // If the buffer and system endianness match, or each element is one byte,
       // endianness is irrelevant, so memcpy the entire array at once
-      std::memcpy(buffer_.as<std::uint8_t>() + write_index_, vector.data(), size * sizeof(T));
-      write_index_ += size * sizeof(T);
-    } else { // For multi-byte types with differing endianness, handle each element individually
-      for (std::size_t i = 0; i < size; ++i) {
+      std::memcpy(buffer_.as<std::uint8_t>() + write_index_, vector.data(), vector.size() * sizeof(T));
+      write_index_ += vector.size() * sizeof(T);
+    } else {
+      // For multi-byte types with differing endianness, handle each element individually
+      for (std::size_t i = 0; i < vector.size(); ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &vector[i], sizeof(T));
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
                              buffer_.as<std::uint8_t>() + write_index_ + sizeof(T));
@@ -290,13 +292,102 @@ public:
     return true;
   }
 
-  template<IntegralType SizeType = std::uint32_t, SerializableString StringType>
-  bool write(const StringType& value, const bytepack::StringMode mode = bytepack::StringMode::SizePrefixed) noexcept
+  template<std::size_t N, typename T>
+  requires NetworkSerializableBasic<T>
+  bool write(const std::vector<T>& vector) noexcept
   {
-    if (mode == StringMode::NullTerminated) {
-      return write_string_null_terminated(value);
+    if (vector.size() < N || buffer_.size() < (write_index_ + N * sizeof(T))) {
+      return false;
     }
-    return write_string_size_prefixed<SizeType>(value);
+
+    if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
+      // If the buffer and system endianness match, or each element is one byte,
+      // endianness is irrelevant, so memcpy the entire array at once
+      std::memcpy(buffer_.as<std::uint8_t>() + write_index_, vector.data(), N * sizeof(T));
+      write_index_ += N * sizeof(T);
+    } else {
+      // For multi-byte types with differing endianness, handle each element individually
+      for (std::size_t i = 0; i < N; ++i) {
+        std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &vector[i], sizeof(T));
+        std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
+                             buffer_.as<std::uint8_t>() + write_index_ + sizeof(T));
+        write_index_ += sizeof(T);
+      }
+    }
+    return true;
+  }
+
+  template<IntegralType SizeType = std::uint32_t, NetworkSerializableString StringType>
+  bool write(const StringType& value) noexcept
+  {
+    const SizeType str_length = static_cast<SizeType>(value.length());
+    if ((std::is_signed_v<SizeType> && str_length < 0) || static_cast<std::size_t>(str_length) != value.length()) {
+      // Overflow or incorrect size type
+      return false;
+    }
+
+    if (buffer_.size() < (write_index_ + sizeof(SizeType) + value.length())) {
+      // String data and its length field cannot fit in the remaining buffer space
+      return false;
+    }
+
+    // Write string length field first (before the string data)
+    if (write(str_length) == false) {
+      return false;
+    }
+
+    std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), value.length());
+    write_index_ += value.length();
+
+    return true;
+  }
+
+  template<std::size_t N, NetworkSerializableString StringType>
+  bool write(const StringType& value) noexcept
+  {
+    if (buffer_.size() < (write_index_ + N)) {
+      // Not enough space in the buffer to write the string
+      return false;
+    }
+
+    if (value.length() >= N) {
+      // If the string is longer or equal to the specified length, write only the required part
+      std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), N);
+    } else {
+      // If the string is shorter, write the string and pad the rest with null characters
+      std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), value.length());
+      std::memset(buffer_.as<std::uint8_t>() + write_index_ + value.length(), '\0', N - value.length());
+    }
+
+    write_index_ += N;
+    return true;
+  }
+
+  template<StringMode Mode, NetworkSerializableString StringType>
+  bool write(const StringType& value) noexcept
+  {
+    if constexpr (Mode == StringMode::NullTerm) {
+      const std::size_t str_length = value.length() + 1; // +1 for null terminator
+
+      if (buffer_.size() < (write_index_ + str_length)) {
+        return false;
+      }
+
+      std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), str_length - 1);
+      buffer_.as<char>()[write_index_ + str_length - 1] = '\0'; // null terminator
+      write_index_ += str_length;
+    } else {
+      // Fallback to existing method for serialization without null termination
+      return write(value); // Call the existing method for StringType
+    }
+
+    return true;
+  }
+
+  template<NetworkSerializableType FirstArg, NetworkSerializableType... Args>
+  bool write(const FirstArg& firstArg, const Args&... args) noexcept
+  {
+    return write(firstArg) && (... && write(args));
   }
 
   // TODO: Currently, the serialization of std::wstring and std::wstring_view is not supported
@@ -387,20 +478,14 @@ public:
 
   template<IntegralType SizeType = std::uint32_t, typename T>
   requires NetworkSerializableBasic<T>
-  bool read(std::vector<T>& vector, const std::optional<std::size_t> num_elements = std::nullopt) noexcept
+  bool read(std::vector<T>& vector) noexcept
   {
-    std::size_t size{};
-    // If `num_elements` is not specified, the std::vector size is deserialized from the metadata before the vector data
-    if (num_elements == std::nullopt) {
-      SizeType size_custom{};
-      // vector size cannot be negative, and zero-size is also unusual so it's treated as an error.
-      if (read(size_custom) == false || size_custom < 1) {
-        return false;
-      }
-      size = static_cast<std::size_t>(size_custom);
-    } else {
-      size = num_elements.value();
+    SizeType size_custom{};
+    // vector size cannot be negative, and zero-size is also unusual so it's treated as an error.
+    if (read(size_custom) == false || size_custom < 1) {
+      return false;
     }
+    const std::size_t size = static_cast<std::size_t>(size_custom);
 
     if (buffer_.size() < (read_index_ + size * sizeof(T))) {
       return false;
@@ -413,7 +498,8 @@ public:
       // endianness is irrelevant, so memcpy the entire array at once
       std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + read_index_, size * sizeof(T));
       read_index_ += size * sizeof(T);
-    } else { // For multi-byte types with differing endianness, handle each element individually
+    } else {
+      // For multi-byte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < size; ++i) {
         std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
         std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&vector[i]),
@@ -424,59 +510,35 @@ public:
     return true;
   }
 
+  template<std::size_t N, typename T>
+  requires NetworkSerializableBasic<T>
+  bool read(std::vector<T>& vector) noexcept
+  {
+    if (buffer_.size() < (read_index_ + N * sizeof(T))) {
+      return false;
+    }
+
+    vector.resize(N);
+
+    if constexpr (BufferEndian == std::endian::native || sizeof(T) == 1) {
+      // If the buffer and system endianness match, or each element is one byte,
+      // endianness is irrelevant, so memcpy the entire array at once
+      std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + read_index_, N * sizeof(T));
+      read_index_ += N * sizeof(T);
+    } else {
+      // For multi-byte types with differing endianness, handle each element individually
+      for (std::size_t i = 0; i < N; ++i) {
+        std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
+        std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&vector[i]),
+                             reinterpret_cast<std::uint8_t*>(&vector[i]) + sizeof(T));
+        read_index_ += sizeof(T);
+      }
+    }
+    return true;
+  }
+
   template<IntegralType SizeType = std::uint32_t>
-  bool read(std::string& value, const bytepack::StringMode mode = bytepack::StringMode::SizePrefixed) noexcept
-  {
-    if (mode == StringMode::NullTerminated) {
-      return read_string_null_terminated(value);
-    }
-    return read_string_size_prefixed<SizeType>(value);
-  }
-
-private:
-  template<IntegralType SizeType = std::uint32_t, SerializableString StringType>
-  bool write_string_size_prefixed(const StringType& value) noexcept
-  {
-    const SizeType str_length = static_cast<SizeType>(value.length());
-    if ((std::is_signed_v<SizeType> && str_length < 0) || static_cast<std::size_t>(str_length) != value.length()) {
-      // Overflow or incorrect size type
-      return false;
-    }
-
-    if (buffer_.size() < (write_index_ + sizeof(SizeType) + value.length())) {
-      // String data and its length field cannot fit in the remaining buffer space
-      return false;
-    }
-
-    // Write string length field first (before the string data)
-    if (write(str_length) == false) {
-      return false;
-    }
-
-    std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), value.length());
-    write_index_ += value.length();
-
-    return true;
-  }
-
-  template<SerializableString StringType>
-  bool write_string_null_terminated(const StringType& value) noexcept
-  {
-    const std::size_t str_length = value.length() + 1; // +1 for null terminator
-
-    if (buffer_.size() < (write_index_ + str_length)) {
-      return false;
-    }
-
-    std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value.data(), str_length - 1);
-    buffer_.as<char>()[write_index_ + str_length - 1] = '\0'; // null terminator
-    write_index_ += str_length;
-
-    return true;
-  }
-
-  template<IntegralType SizeType = std::uint32_t, SerializableString StringType>
-  bool read_string_size_prefixed(StringType& value) noexcept
+  bool read(std::string& value) noexcept
   {
     if (buffer_.size() < (read_index_ + sizeof(SizeType))) {
       return false;
@@ -510,25 +572,60 @@ private:
     return true;
   }
 
-  template<SerializableString StringType>
-  bool read_string_null_terminated(StringType& value) noexcept
+  template<std::size_t N>
+  bool read(std::string& value) noexcept
   {
-    std::size_t end_index = read_index_;
-    // Find null terminator in the buffer starting from the current deserialize index
-    while (end_index < buffer_.size() && buffer_.as<char>()[end_index] != '\0') {
-      ++end_index; // Move to next byte
+    if (buffer_.size() < (read_index_ + N)) {
+      // Not enough data in the buffer to read the string
+      return false;
     }
 
-    if (end_index >= buffer_.size()) {
-      return false; // Null terminator not found
+    value.assign(buffer_.as<char>() + read_index_, N);
+
+    // TODO: This code uses `value.find('\0')` for a linear search to locate the first null character, suitable for
+    // shorter strings. For longer strings, especially when nulls are at the end, first checking the last character for
+    // null can optimize performance. If it's not null, we can avoid the search entirely. Otherwise, a binary
+    // search-like method is more efficient for such strings, as it exponentially narrows the search space, quickly
+    // finding the initial null character, thus enhancing performance for longer lengths.
+    const std::size_t null_pos = value.find('\0');
+    if (null_pos != value.npos) {
+      // If the string in the buffer is null-terminated, resize the string to the actual length
+      value.resize(null_pos);
     }
 
-    const std::size_t str_length = end_index - read_index_;
-    value.assign(buffer_.as<char>() + read_index_, str_length);
+    read_index_ += N;
+    return true;
+  }
 
-    read_index_ += str_length + 1; // +1 for null terminator
+  template<StringMode Mode>
+  bool read(std::string& value) noexcept
+  {
+    if constexpr (Mode == StringMode::NullTerm) {
+      std::size_t end_index = read_index_;
+      // Find null terminator in the buffer starting from the current deserialize index
+      while (end_index < buffer_.size() && buffer_.as<char>()[end_index] != '\0') {
+        ++end_index; // Move to next byte
+      }
+
+      if (end_index >= buffer_.size()) {
+        return false; // Null terminator not found
+      }
+
+      const std::size_t str_length = end_index - read_index_;
+      value.assign(buffer_.as<char>() + read_index_, str_length);
+
+      read_index_ += str_length + 1; // +1 for null terminator
+    } else {
+      return read(value);
+    }
 
     return true;
+  }
+
+  template<NetworkSerializableType FirstArg, NetworkSerializableType... Args>
+  bool read(FirstArg& firstArg, Args&... args) noexcept
+  {
+    return read(firstArg) && (... && read(args));
   }
 
 private:
