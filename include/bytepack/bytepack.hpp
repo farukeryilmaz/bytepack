@@ -26,7 +26,6 @@
 #include <cstdint>
 #include <algorithm>
 #include <concepts>
-#include <optional>
 #include <vector>
 #include <array>
 
@@ -264,7 +263,7 @@ public:
       return false;
     }
 
-    const SizeType size_custom = static_cast<SizeType>(vector.size());
+    const auto size_custom = static_cast<SizeType>(vector.size());
     if ((std::is_signed_v<SizeType> && size_custom < 0) || static_cast<std::size_t>(size_custom) != vector.size()) {
       // Overflow or incorrect size type
       return false;
@@ -320,7 +319,7 @@ public:
   template<IntegralType SizeType = std::uint32_t, NetworkSerializableString StringType>
   bool write(const StringType& value) noexcept
   {
-    const SizeType str_length = static_cast<SizeType>(value.length());
+    const auto str_length = static_cast<SizeType>(value.length());
     if ((std::is_signed_v<SizeType> && str_length < 0) || static_cast<std::size_t>(str_length) != value.length()) {
       // Overflow or incorrect size type
       return false;
@@ -485,7 +484,7 @@ public:
     if (read(size_custom) == false || size_custom < 1) {
       return false;
     }
-    const std::size_t size = static_cast<std::size_t>(size_custom);
+    const auto size = static_cast<std::size_t>(size_custom);
 
     if (buffer_.size() < (read_index_ + size * sizeof(T))) {
       return false;
@@ -588,7 +587,7 @@ public:
     // search-like method is more efficient for such strings, as it exponentially narrows the search space, quickly
     // finding the initial null character, thus enhancing performance for longer lengths.
     const std::size_t null_pos = value.find('\0');
-    if (null_pos != value.npos) {
+    if (null_pos != std::string::npos) {
       // If the string in the buffer is null-terminated, resize the string to the actual length
       value.resize(null_pos);
     }
