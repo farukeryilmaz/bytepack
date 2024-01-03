@@ -24,8 +24,7 @@ This example illustrates the diverse applications and potential of BytePack, enc
 > For more, please read [User Guide and API Documentation](doc/user_guide.md)
 ```cpp
 // Sample struct for a conceptual usage scenario
-struct SensorData
-{
+struct SensorData {
   std::int64_t timestamp; // UNIX timestamp of measurement
   double value;           // Measured value
   char sensor_id[16];     // Identifier of the sensor
