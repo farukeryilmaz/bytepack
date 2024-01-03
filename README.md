@@ -24,22 +24,19 @@ This example illustrates the diverse applications and potential of BytePack, enc
 > For more, please read [User Guide and API Documentation](doc/user_guide.md)
 ```cpp
 // Sample struct for a conceptual usage scenario
-struct SensorData {
-    std::int64_t timestamp;  // UNIX timestamp of measurement
-    double value;            // Measured value
-    char sensor_id[16];      // Identifier of the sensor
+struct SensorData
+{
+  std::int64_t timestamp; // UNIX timestamp of measurement
+  double value;           // Measured value
+  char sensor_id[16];     // Identifier of the sensor
 
-    void serialize(bytepack::binary_stream<>& stream) const {
-        stream.write(timestamp);
-        stream.write(value);
-        stream.write(sensor_id);
-    }
+  void serialize(bytepack::binary_stream<>& stream) const {
+    stream.write(timestamp, value, sensor_id);
+  }
 
-    void deserialize(bytepack::binary_stream<>& stream) {
-        stream.read(timestamp);
-        stream.read(value);
-        stream.read(sensor_id);
-    }
+  void deserialize(bytepack::binary_stream<>& stream) {
+    stream.read(timestamp, value, sensor_id);
+  }
 };
 
 SensorData sensorData{ 1701037875, 23.6, "Sensor-001" };
