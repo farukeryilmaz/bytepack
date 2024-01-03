@@ -136,3 +136,46 @@ TEST_CASE("String and string view null terminated (little-endian)")
   REQUIRE(str == str_);
   REQUIRE(num1 == Approx(num1_).epsilon(1e-7));
 }
+
+TEST_CASE("String and string view with given size (big-endian)")
+{
+  // Data to serialize
+  std::string str = "Hello BytePack!abcdefgh";
+  std::string str2 = "Test string with given size";
+  std::string_view str3 = "bytepack library C++20 testabcdefgh";
+  std::string_view str4 = "abcdefghijklmnopqrstuvwxyz123456789101112131415161718192021222324252627282930313233343536373"
+                          "8394041424344454647484950515253545556575859606162636465666768697071727374757677787980818283";
+
+  // Data to test against
+  std::string str_test = "Hello BytePack!";
+  std::string str3_test = "bytepack library C++20 test";
+
+  bytepack::binary_stream bstream(100);
+
+  bstream.write<15>(str);
+  bstream.write<50>(str2);
+  bstream.write<27>(str3);
+  bstream.write(str4);
+
+  std::string str_{};
+  std::string str2_{};
+  std::string str3_{}; // string_view cannot be read into directly (it's a reference)
+  std::string str4_{};
+
+  bytepack::binary_stream bstream_(bstream.data());
+
+  bstream_.read<15>(str_);
+  bstream_.read<50>(str2_);
+  bstream_.read<27>(str3_);
+  bstream_.read(str4_);
+
+  // 15 bytes for the string, 50 bytes for the string, 27 bytes for the string_view, 183 bytes for the string.
+  // Total is 275 but the buffer size is 100 bytes, so the str4 is not serialized and deserialized.
+  // Written 92 bytes in total.
+  REQUIRE(92 == bstream.data().size());
+
+  REQUIRE(str_test == str_);
+  REQUIRE(str2 == str2_);
+  REQUIRE(str3_test == str3_);
+  REQUIRE(str4_.empty());
+}
