@@ -114,6 +114,16 @@ template<typename T>
 concept NetworkSerializableBasicArray = std::is_array_v<T> && NetworkSerializableBasic<std::remove_extent_t<T>>;
 
 template<typename T>
+concept NetworkSerializableArray =
+  requires {
+    typename T::value_type;
+    {
+      std::tuple_size<T>::value
+    };
+  } && std::is_same_v<T, std::array<typename T::value_type, std::tuple_size<T>::value>>
+  && NetworkSerializableBasic<typename T::value_type>;
+
+template<typename T>
 concept NetworkSerializableVector = std::is_same_v<T, std::vector<typename T::value_type, typename T::allocator_type>>
                                     && NetworkSerializableBasic<typename T::value_type>;
 template<typename T>
@@ -121,7 +131,8 @@ concept NetworkSerializableString = std::same_as<T, std::string> || std::same_as
 
 template<typename T>
 concept NetworkSerializableType = NetworkSerializableBasic<T> || NetworkSerializableBasicArray<T>
-                                  || NetworkSerializableString<T> || NetworkSerializableVector<T>;
+                                  || NetworkSerializableArray<T> || NetworkSerializableString<T>
+                                  || NetworkSerializableVector<T>;
 
 template<typename T>
 concept IntegralType = std::is_integral_v<T>;
@@ -215,7 +226,7 @@ public:
       std::memcpy(buffer_.as<std::uint8_t>() + write_index_, value, sizeof(T));
       write_index_ += sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < numElements; ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &value[i], elementSize);
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
@@ -242,7 +253,7 @@ public:
       std::memcpy(buffer_.as<std::uint8_t>() + write_index_, array.data(), N * sizeof(T));
       write_index_ += N * sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < N; ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &array[i], sizeof(T));
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
@@ -280,7 +291,7 @@ public:
       std::memcpy(buffer_.as<std::uint8_t>() + write_index_, vector.data(), vector.size() * sizeof(T));
       write_index_ += vector.size() * sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < vector.size(); ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &vector[i], sizeof(T));
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
@@ -305,7 +316,7 @@ public:
       std::memcpy(buffer_.as<std::uint8_t>() + write_index_, vector.data(), N * sizeof(T));
       write_index_ += N * sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < N; ++i) {
         std::memcpy(buffer_.as<std::uint8_t>() + write_index_, &vector[i], sizeof(T));
         std::ranges::reverse(buffer_.as<std::uint8_t>() + write_index_,
@@ -436,7 +447,7 @@ public:
       std::memcpy(value, buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
       read_index_ += sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (size_t i = 0; i < numElements; ++i) {
         std::memcpy(&value[i], buffer_.as<std::uint8_t>() + read_index_, elementSize);
         std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&value[i]),
@@ -463,7 +474,7 @@ public:
       std::memcpy(array.data(), buffer_.as<std::uint8_t>() + read_index_, N * sizeof(T));
       read_index_ += N * sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (size_t i = 0; i < N; ++i) {
         std::memcpy(&array[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
         std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&array[i]),
@@ -480,7 +491,7 @@ public:
   bool read(std::vector<T>& vector) noexcept
   {
     SizeType size_custom{};
-    // vector size cannot be negative, and zero-size is also unusual so it's treated as an error.
+    // vector size cannot be negative, and zero-size is also unusual, so it's treated as an error.
     if (read(size_custom) == false || size_custom < 1) {
       return false;
     }
@@ -498,7 +509,7 @@ public:
       std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + read_index_, size * sizeof(T));
       read_index_ += size * sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < size; ++i) {
         std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
         std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&vector[i]),
@@ -525,7 +536,7 @@ public:
       std::memcpy(vector.data(), buffer_.as<std::uint8_t>() + read_index_, N * sizeof(T));
       read_index_ += N * sizeof(T);
     } else {
-      // For multi-byte types with differing endianness, handle each element individually
+      // For multibyte types with differing endianness, handle each element individually
       for (std::size_t i = 0; i < N; ++i) {
         std::memcpy(&vector[i], buffer_.as<std::uint8_t>() + read_index_, sizeof(T));
         std::ranges::reverse(reinterpret_cast<std::uint8_t*>(&vector[i]),
@@ -553,7 +564,7 @@ public:
                            reinterpret_cast<std::uint8_t*>(&str_length) + sizeof(SizeType));
     }
 
-    // String length cannot be negative, and zero-length is also unusual so it's treated as an error.
+    // String length cannot be negative, and zero-length is also unusual, so it's treated as an error.
     if (str_length < 1) {
       return false;
     }
