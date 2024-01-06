@@ -60,8 +60,7 @@ TEST_CASE("Std containers - array test (big-endian)")
   bytepack::binary_stream bstream(1024);
 
   bstream.write(arr);
-  bstream.write(arr2);
-  bstream.write(arr3);
+  bstream.write(arr2, arr3);
   bstream.write(arr4);
 
   // std::array to deserialize
@@ -74,9 +73,7 @@ TEST_CASE("Std containers - array test (big-endian)")
   bytepack::binary_stream bstream_(buffer);
 
   bstream_.read(arr_);
-  bstream_.read(arr2_);
-  bstream_.read(arr3_);
-  bstream_.read(arr4_);
+  bstream_.read(arr2_, arr3_, arr4_);
 
   REQUIRE(arr == arr_);
   REQUIRE(arr2 == arr2_);
