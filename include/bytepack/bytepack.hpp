@@ -69,6 +69,18 @@ public:
   {}
 
   /**
+   * Enables handling of raw memory but lacks type safety. Users must
+   * ensure correct data interpretation and alignment. Ideal for advanced
+   * use cases involving low-level memory operations.
+   *
+   * @param ptr Pointer to raw data.
+   * @param size Size of the data in bytes.
+   */
+  explicit constexpr buffer_view(void* ptr, const std::size_t size) noexcept
+    : data_{ ptr }, size_{ size }, ssize_{ to_ssize(size) }
+  {}
+
+  /**
    * Templated method to get data as the specified type.
    *
    * Warning: This method does not provide type safety and assumes the user knows the correct type of the data.
