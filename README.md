@@ -21,7 +21,9 @@ Header-only C++20 library primarily designed for network communication, focusing
 
 ## Usage Example
 This example illustrates the diverse applications and potential of BytePack, encouraging exploration of its many possible use cases.
-> For more, please read [User Guide and API Documentation](doc/user_guide.md)
+> * For more practical examples: [Example Codes: ASIO, Qt, and Raw Sockets](examples/README.md)  
+> * For detailed usage, please read [User Guide & API Reference](doc/user_guide.md)
+
 ```cpp
 // Sample struct for a conceptual usage scenario
 struct SensorData {
