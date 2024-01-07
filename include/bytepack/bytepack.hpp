@@ -49,7 +49,7 @@ public:
   template<typename T, std::size_t N>
   requires SerializableBuffer<T>
   explicit constexpr buffer_view(T (&array)[N]) noexcept
-    : data_{ array }, size_{ N * sizeof(T) }, ssize_{ to_ssize(N * sizeof(T)) }
+    : data_{ static_cast<void*>(array) }, size_{ N * sizeof(T) }, ssize_{ to_ssize(N * sizeof(T)) }
   {}
 
   template<typename T>
@@ -59,19 +59,18 @@ public:
   {}
 
   explicit buffer_view(std::string& str) noexcept
-    : data_{ str.data() }, size_{ str.size() }, ssize_{ to_ssize(str.size()) }
+    : data_{ static_cast<void*>(str.data()) }, size_{ str.size() }, ssize_{ to_ssize(str.size()) }
   {}
 
   template<typename T, std::size_t N>
   requires SerializableBuffer<T>
   explicit constexpr buffer_view(std::array<T, N>& array) noexcept
-    : data_{ array.data() }, size_{ N * sizeof(T) }, ssize_{ to_ssize(N * sizeof(T)) }
+    : data_{ static_cast<void*>(array.data()) }, size_{ N * sizeof(T) }, ssize_{ to_ssize(N * sizeof(T)) }
   {}
 
   /**
-   * Enables handling of raw memory but lacks type safety. Users must
-   * ensure correct data interpretation and alignment. Ideal for advanced
-   * use cases involving low-level memory operations.
+   * Enables handling of raw memory but lacks type safety. Users must ensure correct data interpretation
+   * and alignment. Ideal for advanced use cases involving low-level memory operations.
    *
    * @param ptr Pointer to raw data.
    * @param size Size of the data in bytes.
@@ -385,10 +384,10 @@ public:
     return true;
   }
 
-  template<StringMode Mode, NetworkSerializableString StringType>
+  template<bytepack::StringMode Mode, NetworkSerializableString StringType>
   bool write(const StringType& value) noexcept
   {
-    if constexpr (Mode == StringMode::NullTerm) {
+    if constexpr (Mode == bytepack::StringMode::NullTerm) {
       const std::size_t str_length = value.length() + 1; // +1 for null terminator
 
       if (buffer_.size() < (write_index_ + str_length)) {
@@ -609,8 +608,7 @@ public:
     // null can optimize performance. If it's not null, we can avoid the search entirely. Otherwise, a binary
     // search-like method is more efficient for such strings, as it exponentially narrows the search space, quickly
     // finding the initial null character, thus enhancing performance for longer lengths.
-    const std::size_t null_pos = value.find('\0');
-    if (null_pos != std::string::npos) {
+    if (const std::size_t null_pos = value.find('\0'); null_pos != std::string::npos) {
       // If the string in the buffer is null-terminated, resize the string to the actual length
       value.resize(null_pos);
     }
@@ -619,10 +617,10 @@ public:
     return true;
   }
 
-  template<StringMode Mode>
+  template<bytepack::StringMode Mode>
   bool read(std::string& value) noexcept
   {
-    if constexpr (Mode == StringMode::NullTerm) {
+    if constexpr (Mode == bytepack::StringMode::NullTerm) {
       std::size_t end_index = read_index_;
       // Find null terminator in the buffer starting from the current deserialize index
       while (end_index < buffer_.size() && buffer_.as<char>()[end_index] != '\0') {
