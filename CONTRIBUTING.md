@@ -1,20 +1,18 @@
 # Contributing to BytePack
 First off, thank you for considering contributing to BytePack. Whether you're fixing a bug, writing a test, adding a feature, or improving documentation, your work is important to the growth of BytePack. It's people like you that make the open-source community such a fantastic place to learn, inspire, and create.
 
-> Before submitting code changes, feedback or suggestions, please read the [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md)
+> **Note:** Before submitting code changes, feedback or suggestions, please read [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md) and [Roadmap Draft](doc/roadmap_draft.md) documents.
 
 ## Ways to Contribute
-### 1) Reporting Bugs
+### 1) Feedback and Suggestions
+Ideas for new features or suggestions for improvements to existing functionality are always welcome. Feel free to submit an issue with your suggestion (e-mails are also welcome).
 
+### 2) Reporting Bugs
 Bugs are tracked publicly as GitHub issues (e-mails are also welcome). Before creating bug reports, please check the [issue list](https://github.com/farukeryilmaz/bytepack/issues) as you might find out that you don't need to create one. When you are creating a bug report, please provide as much detail as possible, including:
 
 - The expected behavior and what actually happened.
 - Steps to reproduce the bug or copy/pasteable code snippets.
 - Your environment details (OS, compiler version, etc.).
-
-### 2) Suggesting Enhancements
-
-Ideas for new features or suggestions for improvements to existing functionality are always welcome. Feel free to submit an issue with your suggestion (e-mails are also welcome).
 
 ### 3) Submitting Code Changes
 Bug fixes, feature enhancements, code examples and documentation, unit tests, performance improvements and security fixes are highly appreciated. If you'd like to contribute code, please read the section below on how to do this.
@@ -43,16 +41,14 @@ Ready to contribute code or documentation? Great! Here's how:
 
 ### Code Formatting
 BytePack adheres to a consistent coding style to maintain the readability and maintainability of the code. `clang-format` tool is used for automatic code formatting. A `.clang-format` file is provided at the root of the repository. Please ensure your contributions follow this style.
-- Formatting Your Code: Before commiting and submitting your pull request, please format your code using clang-format.
+- Formatting Your Code: Before committing and submitting your pull request, please format your code using clang-format.
   1. Go to root directory of the project.
   2. Run the command on the command-line: `clang-format -i ./include/bytepack/bytepack.hpp`
 
 Adhering to these formatting guidelines helps me efficiently review and merge your contributions.
 
 ### Use of Third-Party Libraries
-
 If you want to add a third-party library, please submit a GitHub issue to discuss it before making significant changes.
 
 ## Community and Communication
-
 Direct communication through GitHub issues and pull requests is the primary way to discuss the project. If you have any questions or want to discuss a feature idea, feel free to open an issue. You can also reach out to me directly via e-mail: `faruk [at] farukeryilmaz [dot] com`

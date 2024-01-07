@@ -86,6 +86,11 @@ Include the library in your C++ project:
 BytePack is a C++ library crafted with a clear focus on simplicity and flexibility in binary serialization, primarily for network communication. It does not enforce any standardization, versioning, or the use of Interface Description Language (IDL) in serialization, providing you with the freedom to define your data structures and protocols. This approach is ideal when interfacing with systems where data formats and protocols are defined externally, as is often the case in standards like IEEE 12207, Interface Control Documents (ICD), Interface Design Description (IDD), and other industry-specific specifications. It allows you to seamlessly integrate BytePack into diverse projects, accommodating a wide range of requirements and compliance standards.
 > For more details: [Motivation & Design Philosophy of BytePack](doc/design_philosophy.md)
 
+## Roadmap Draft (Community-Driven)
+> Read the [Roadmap Draft](doc/roadmap_draft.md) document for more details.
+
+Explore the detailed roadmap of BytePack. This living document includes various development stages from solid concepts to initial ideas, awaiting community feedback. Discover API explorations, feature considerations, and potential solutions.
+
 ## Contributions and Feedback
 Contributions are welcome! If you encounter issues, have suggestions, or want to contribute to the development of the library, please read the [Contribution Guideline](CONTRIBUTING.md).
 
