@@ -77,7 +77,7 @@ git clone https://github.com/farukeryilmaz/bytepack.git
 ```
 Include the library in your C++ project:
 ```cpp
-#include "bytepack/bytepack.hpp"
+#include <bytepack/bytepack.hpp>
 ```
 
 ## Design Philosophy
@@ -93,3 +93,5 @@ For any questions, feedback, or inquiries, you can also reach out to me directly
 
 ## License
 `BytePack` is licensed under the [MIT License](https://github.com/farukeryilmaz/bytepack/blob/main/LICENSE).
+
+**Note:** Example codes in the `examples` folder are provided for demonstration purposes only and is not covered under any specific license terms. Users are free to use it as they wish.
