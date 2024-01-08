@@ -14,4 +14,11 @@ target_sources(BytePackTests
         usecase1_test.cpp
 )
 
+# Compiler specific warning flags for tests
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wall -Wextra -Wshadow -Wnon-virtual-dtor -pedantic -Wconversion -Wsign-conversion)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options(/W4 /w14640 /permissive-)
+endif()
+
 add_test(NAME BytePackTests COMMAND BytePackTests)
