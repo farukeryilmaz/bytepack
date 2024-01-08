@@ -26,21 +26,22 @@ git clone --recursive https://github.com/farukeryilmaz/bytepack.git
 ### 3.1 Visual Studio
 You can generate Visual Studio Solution (.sln) with CMake and run the test on Visual Studio:
 > Run cmake command under project folder. It generates **BytePack.sln** file under **build** folder.
-- **Visual Studio 2022 version 17:** `cmake -S . -B build -G "Visual Studio 17 2022"`
-- **Visual Studio 2019 version 16:** `cmake -S . -B build -G "Visual Studio 16 2019"`
+- **Visual Studio 2022 version 17:** `cmake -S . -B build -G "Visual Studio 17 2022" -DBYTEPACK_BUILD_TESTS=ON`
+- **Visual Studio 2019 version 16:** `cmake -S . -B build -G "Visual Studio 16 2019" -DBYTEPACK_BUILD_TESTS=ON`
 
 Or you can directly run test using **CMake** with **MSVC**:
 ```console
-cmake -S . -B build -DCMAKE_CXX_STANDARD=20
+cmake -S . -B build -DCMAKE_CXX_STANDARD=20 -DBYTEPACK_BUILD_TESTS=ON
 cmake --build build --config Release
 cd build
 ctest -C Release
 ```
-
+> To disable building tests, replace `-DBYTEPACK_BUILD_TESTS=ON` with `-DBYTEPACK_BUILD_TESTS=OFF`
 ### 3.2 GNU/Linux
 ```bash
-cmake -S . -B build
+cmake -S . -B build -DBYTEPACK_BUILD_TESTS=ON
 cmake --build build
 cd build
 ctest
 ```
+> Use `-DBYTEPACK_BUILD_TESTS=OFF` in the cmake command to skip building tests.
