@@ -26,9 +26,12 @@ user's preference.
 
 1. Read/Write a single field by **byte offset**:
     - **Cons:** requires users to know the byte offset of the data member.
-        - To know the byte offset of a data member,
-        - If there is an ICD/IDD (Interface Control Document/Interface Design Document) for the data structure, this is
-          not a problem.
+        - To know the byte offset of a data member in the buffer, users need to know the size of all data members, their
+          order in the class, and then calculate the byte offset of the data member by adding the sizes of the previous
+          data members. For instance, byte offset of the 3rd data member (c) in the struct is 12:  
+          `struct MyStruct { int a; double b; float c; };`
+        - If there is an ICD/IDD (Interface Control Document/Interface Design Document) or similar document for the data
+          structure, byte offsets for each data member can be found in the document
     - `binary_stream::read_field<ByteOffset>(value)` or `::read_field(value, byte_offset)`
     - `binary_stream::write_field<ByteOffset>(value)` or `::write_field(value, byte_offset)`
 2. Read/Write a single field by giving ignored fields:
@@ -121,9 +124,10 @@ of the buffer.
 
 **Status:** Under consideration. Seeking community feedback if there is a need for this feature.
 
-## 9. Reflection & Aggregate Type Support
+## 9. Aggregate Type Support (Reflection)
 
-**Overview:** Supporting reflection and aggregate type serialization (magic_get, boost::pfr, custom). This enables users
+**Overview:** Supporting reflection and aggregate type serialization (`magic_get`, `boost::pfr`, custom). This enables
+users
 to serialize/deserialize aggregate types without explicitly giving the data members. For instance, the following code
 would be valid:
 
@@ -149,7 +153,8 @@ point). Seeking community feedback.
 
 **Overview:** Direct serialization to file streams and deserialization from file streams.
 
-**Status:** Under consideration. Examining file handling and I/O efficiency. Seeking community feedback.
+**Status:** Under consideration. Examining file handling and I/O efficiency. Less likely to be implemented. Seeking
+community feedback.
 
 ## 11. Lazy Buffer Initialization
 
