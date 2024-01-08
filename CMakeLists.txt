@@ -15,7 +15,11 @@ endif()
 add_library(bytepack INTERFACE)
 target_include_directories(bytepack INTERFACE ${PROJECT_SOURCE_DIR}/include)
 
-add_subdirectory(extern/Catch2)
-
-enable_testing()
-add_subdirectory(test)
+# Option for building tests
+option(BYTEPACK_BUILD_TESTS "Build the BytePack tests" OFF)
+if(BYTEPACK_BUILD_TESTS)
+    message("Build the BytePack tests")
+    add_subdirectory(extern/Catch2)
+    enable_testing()
+    add_subdirectory(test)
+endif()
