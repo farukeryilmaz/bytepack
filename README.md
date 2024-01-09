@@ -15,6 +15,7 @@ Header-only C++20 library primarily designed for network communication, focusing
 - **No Library-Specific Encoding:** Avoids any custom encoding (IDL, metadata, etc.) facilitating interoperability and simplifying the troubleshooting of network packets.
 - **Configurable Endianness Support:** Choose the desired endianness for data serialization and deserialization.
 - **No Exceptions:** Ensures stable and predictable error handling.
+- **No Macros:** Designed without the use of preprocessor macros for cleaner and more maintainable code.
 - **Flexible Buffer Management:** Utilizes a non-owning mutable buffer concept for efficient memory management.
 - **Easy to Debug and Customize:** Clear and concise codebase makes debugging easy. Adaptable for customization to address specific requirements.
 - **Cross-platform compatible:** Tested on `Windows`, `GNU/Linux` and `macOS`.
