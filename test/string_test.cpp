@@ -6,28 +6,34 @@ TEST_CASE("String and string view (big-endian)")
 {
   std::string str = "Hello World!";
   std::string_view str2 = "bytepack library";
+  std::string str3 = "bytepack";
 
-  bytepack::binary_stream bstream(1024);
+  bytepack::binary_stream bstream(43);
 
   bstream.write(str);
   bstream.write<short int>(str2);
+  bstream.write<bytepack::StringMode::NullTerm>(str3);
 
   std::string str_{};
   std::string str2_{}; // string_view cannot be read into directly (it's a reference)
+  std::string str3_{};
 
   auto buffer = bstream.data();
   bytepack::binary_stream bstream_(buffer);
 
   bstream_.read(str_);
   bstream_.read<short int>(str2_);
+  bstream_.read<bytepack::StringMode::NullTerm>(str3_);
 
-  // 4 bytes for the size of the string, 12 bytes for the string itself
-  // 2 bytes for the custom size of the string_view, 16 bytes for the string_view itself
-  // 34 bytes in total
-  REQUIRE(34 == buffer.size());
+  // 4 bytes for the size of the str, 12 bytes for the string itself
+  // 2 bytes for the custom size of the str2 string_view, 16 bytes for the string_view itself
+  // 8 bytes for the size of the str3, 1 byte for the null terminator '\0'
+  // 43 bytes in total
+  REQUIRE(43 == buffer.size());
 
   REQUIRE(str == str_);
   REQUIRE(str2 == str2_);
+  REQUIRE(str3 == str3_);
 }
 
 TEST_CASE("String and string view (little-endian)")
@@ -124,7 +130,8 @@ TEST_CASE("String and string view null terminated (little-endian)")
   double num1_{};
 
   auto buffer = bstream.data();
-  bytepack::binary_stream<std::endian::little> bstream_(buffer);
+  auto buff = bytepack::buffer_view(buffer.as<void>(), buffer.size());
+  bytepack::binary_stream<std::endian::little> bstream_(buff);
 
   bstream_.read<bytepack::StringMode::NullTerm>(str_);
   bstream_.read(num1_);
