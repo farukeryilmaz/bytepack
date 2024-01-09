@@ -151,12 +151,15 @@ std::size_t dataSize = buffer.size(); // total serialized data size (44 byte).
 ```
 
 ### Simple Deserialization - 1 (_buffer instantiated with external resource_)
-  ```cpp
+```cpp
+std::array<char, 1024 * 10> externalBuffer;
+// ... other code to fill the buffer with data
+
+// Data to deserialize into
 int intArr_[10]{};
 float num_{};
 
-// create `bytepack::buffer_view buffer(..` with a resource to deserialize from.
-bytepack::binary_stream stream(buffer);
+bytepack::binary_stream stream(bytepack::buffer_view(externalBuffer));
 
 stream.read(intArr_);
 stream.read(num_);
