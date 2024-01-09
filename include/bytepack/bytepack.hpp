@@ -12,7 +12,10 @@
 
 /**
  * @file bytepack.hpp
- * @brief Simple C++ binary serialization library with endianness control, avoiding custom encoding.
+ * @brief BytePack is a simple, flexible and efficient header-only C++20 library designed for binary serialization and
+ * deserialization, especially suited for network communication. It offers endianness control and avoids
+ * library-specific encodings, ensuring adaptability to various data formats and external interfaces without imposing
+ * rigid standardizations. It supports both internally allocated buffers and user-supplied buffers.
  */
 
 #ifndef BYTEPACK_HPP
@@ -34,6 +37,9 @@ namespace bytepack {
 template<typename T>
 concept SerializableBuffer =
   std::is_fundamental_v<T> && std::is_pointer_v<T> == false && std::is_reference_v<T> == false;
+
+template<typename T>
+concept ValidBufferAccessType = sizeof(T) == 1 || std::is_void_v<T>;
 
 /**
  * @class buffer_view
@@ -90,7 +96,7 @@ public:
    * @return Pointer to the buffer's data cast to the specified type.
    */
   template<typename T>
-  requires SerializableBuffer<T>
+  requires ValidBufferAccessType<T>
   [[nodiscard]] constexpr T* as() const noexcept
   {
     return static_cast<T*>(data_);
