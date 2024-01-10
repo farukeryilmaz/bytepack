@@ -85,16 +85,6 @@ public:
     : data_{ ptr }, size_{ size }, ssize_{ to_ssize(size) }
   {}
 
-  /**
-   * Templated method to get data as the specified type.
-   *
-   * Warning: This method does not provide type safety and assumes the user knows the correct type of the data.
-   * It also does not perform size checks, so users must ensure that the buffer is large enough to contain
-   * the data of type T. Accessing beyond the bounds of the buffer can lead to undefined behavior.
-   *
-   * @tparam T The type to which the buffer's data will be cast.
-   * @return Pointer to the buffer's data cast to the specified type.
-   */
   template<typename T>
   requires ValidBufferAccessType<T>
   [[nodiscard]] constexpr T* as() const noexcept
