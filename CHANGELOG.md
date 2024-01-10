@@ -36,5 +36,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - MIT License for open and permissive usage.
 
 ### Known Issues and Limitations
-- Architecture and platform-dependent type sizes for certain data types like `std::size_t` and `long int`, which can cause inconsistencies across different platforms and architectures. Recommended use of fixed-width integer types from `<cstdint>` for cross-platform compatibility.
+- Certain types in C++, such as `std::size_t` and `long int` can vary in size across different architectures and platforms. Utilization of `fixed-width integer types` from `<cstdint>` is recommended for uniform data representation across different platforms and architectures.
 - Current lack of support for `std::wstring` and `std::wstring_view` due to variations in `wchar_t` size across platforms. Users are advised to use `std::string` and `std::string_view` for string serialization.
