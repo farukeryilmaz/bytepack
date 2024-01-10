@@ -11,20 +11,12 @@ The `BytePack` guide covers its binary serialization capabilities, focusing on v
 - **Standard Strings:** _`std::string` and `std::string_view`_
 - **C-style arrays** such as _`char[]`, `int[]`, `double[]`, etc._
 
-## 3. Limitations
-1. **Architecture-Dependent Type Sizes:** Types like `std::size_t` vary in size across different architectures. For instance, `std::size_t` is **8 bytes on 64-bit systems** but **4 bytes on 32-bit systems**.
-2. **Platform-Specific Type Sizes:** Certain types, such as `long int` and `unsigned long int`, have different sizes on different platforms. They are **8 bytes on Windows** but only **4 bytes on GNU/Linux** systems, even when both platforms are 64-bit.
-
-These variations can cause inconsistent behavior in serialize/deserialize processes across different platforms and architectures.
-### 3.1 Recommendations
-For consistent cross-platform compatibility, it's recommended to use `fixed-width integer types` from `<cstdint>` (e.g., `std::uint32_t`, `std::int64_t`) to ensure predictable data sizes during serialization and deserialization.
-
-## 4. Classes
+## 3. Classes
 > **namespace**: Library specific implementations (class, concept, etc.) are under `bytepack` namespace.
 - `binary_stream`: The main class for serializing and deserializing data.
 - `buffer_view`: A non-owning mutable class that represents a buffer to provide an interface to access binary data without owning it. It encapsulates a pointer to data and its size. It does not manage the lifetime of the underlying data.
 
-## 4.1 `bytepack::binary_stream`
+## 3.1 `bytepack::binary_stream`
 The `binary_stream` class can be instantiated either with a non-owning buffer (_buffer_view_) or a specified size in bytes. When initialized with a size, the binary_stream autonomously allocates and manages the buffer's lifecycle. However, if it is constructed with a user-supplied buffer, it is the user's responsibility to ensure the proper deletion or freeing of the buffer.
 
 ### Example Instantiation:
@@ -97,7 +89,7 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
 - `reset()`:
   - The `reset` method in the `binary_stream` resets internal indices for serialization and deserialization. It's especially beneficial for network/socket communication. With reset, you can efficiently process both incoming and outgoing data without creating new `binary_stream` instances. This is useful for streaming data or handling multiple messages with the same buffer, optimizing resource usage and simplifying buffer management in networked applications.
 
-## 4.2 `bytepack::buffer_view`
+## 3.2 `bytepack::buffer_view`
 ### Example Instantiation:
 - From C-style Array (_stack buffer_):
   1. `char data[1024]{};`
@@ -132,6 +124,11 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
 - `operator bool()`:
   - Checks if the buffer is valid (non-null and size greater than 0).
   - Example: `if (buffer) { /* Buffer is valid */ }`
+
+## 4. Platform and Architecture Considerations
+Certain types in C++, such as `std::size_t`, `long int`, and `unsigned long int`, can vary in size across different architectures and platforms. For instance, `std::size_t` is 8 bytes on 64-bit systems but 4 bytes on 32-bit systems. Similarly, `long int` and `unsigned long int` are 8 bytes on Windows but 4 bytes on GNU/Linux systems, even on 64-bit platforms.
+
+For consistent cross-platform compatibility, it's recommended to use `fixed-width integer types` from `<cstdint>` (e.g., `std::uint32_t`, `std::int64_t`) to ensure predictable data sizes during serialization and deserialization regardless of the underlying platform or architecture. This allows you to define your serialization standards with confidence, knowing your data will be interpreted accurately and consistently across different environments.
 
 ## 5. Example Codes
 ### Simple Serialization - 1 (_default heap allocated buffer_)
