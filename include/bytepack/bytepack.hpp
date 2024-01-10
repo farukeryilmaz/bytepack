@@ -52,6 +52,13 @@ concept ValidBufferAccessType = sizeof(T) == 1 || std::is_void_v<T>;
 class buffer_view
 {
 public:
+  /**
+   * @brief Constructs a buffer_view from a C-style array.
+   *
+   * @tparam T The type of elements in the array.
+   * @tparam N The number of elements in the array.
+   * @param array Reference to the array.
+   */
   template<typename T, std::size_t N>
   requires SerializableBuffer<T>
   explicit constexpr buffer_view(T (&array)[N]) noexcept
@@ -85,6 +92,12 @@ public:
     : data_{ ptr }, size_{ size }, ssize_{ to_ssize(size) }
   {}
 
+  /**
+   * @brief Returns a typed pointer to the buffer data.
+   *
+   * @tparam T The type to cast the data pointer to.
+   * @return T* Typed pointer to the buffer data.
+   */
   template<typename T>
   requires ValidBufferAccessType<T>
   [[nodiscard]] constexpr T* as() const noexcept
