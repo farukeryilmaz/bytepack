@@ -199,3 +199,36 @@ TEST_CASE("Std containers - vector/array mixed test (little-endian)")
 
   REQUIRE(vec3 == vec3_);
 }
+
+TEST_CASE("Std containers - zero size test (big-endian)")
+{
+  // containers to serialize
+  const std::array<int, 5> arr = { 12, 2, 3, 4, 5 };
+  const std::vector<std::uint16_t> vec = { 87, 13, 0, 65535, 65534 };
+  const std::vector<std::uint16_t> vec2{};
+  const std::vector<std::int8_t> vec3 = { 23, 11, 81, 15 };
+  const std::string str{};
+  const std::vector<int> vec4 = { -999, 123, 555 };
+
+  bytepack::binary_stream bstream(1024);
+  bstream.write(arr, vec, vec2, vec3, str, vec4);
+
+  // containers to deserialize
+  std::array<int, 5> arr_{};
+  std::vector<std::uint16_t> vec_{};
+  std::vector<std::uint16_t> vec2_{};
+  std::vector<std::int8_t> vec3_{};
+  std::string str_{};
+  std::vector<int> vec4_{};
+
+  auto buffer = bstream.data();
+  bytepack::binary_stream bstream_(buffer);
+  bstream_.read(arr_, vec_, vec2_, vec3_, str_, vec4_);
+
+  REQUIRE(arr == arr_);
+  REQUIRE(vec == vec_);
+  REQUIRE(vec2 == vec2_);
+  REQUIRE(vec3 == vec3_);
+  REQUIRE(str == str_);
+  REQUIRE(vec4 == vec4_);
+}
