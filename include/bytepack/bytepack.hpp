@@ -18,8 +18,8 @@
  * rigid standardizations. It supports both internally allocated buffers and user-supplied buffers.
  */
 
-#ifndef BYTEPACK_HPP
-#define BYTEPACK_HPP
+#ifndef BYTEPACK_BYTEPACK_HPP
+#define BYTEPACK_BYTEPACK_HPP
 
 #include <bit>
 #include <string>
@@ -111,7 +111,7 @@ public:
 
   [[nodiscard]] constexpr bool is_empty() const noexcept { return size_ == 0; }
 
-  [[nodiscard]] constexpr operator bool() const noexcept { return data_ && size_ > 0; }
+  [[nodiscard]] constexpr operator bool() const noexcept { return data_ != nullptr && size_ > 0; }
 
 private:
   static constexpr std::ptrdiff_t to_ssize(const std::size_t size) noexcept
@@ -120,7 +120,6 @@ private:
     return static_cast<R>(size);
   }
 
-private:
   void* data_;
   std::size_t size_;
   std::ptrdiff_t ssize_; // signed
@@ -288,7 +287,9 @@ public:
   requires NetworkSerializableBasic<T>
   bool write(const std::vector<T>& vector) noexcept
   {
-    // the vector size is serialized as metadata before the vector data
+    // When serializing dynamic size containers (if fixed size is not given), always include the container's size as
+    // metadata before the container data. This is crucial even for empty containers, as it allows the deserializer to
+    // accurately determine if the container is empty or contains data.
     if (buffer_.size() < (write_index_ + sizeof(SizeType) + vector.size() * sizeof(T))) {
       // Vector size field and its elements cannot fit in the remaining buffer space
       return false;
@@ -511,8 +512,9 @@ public:
   bool read(std::vector<T>& vector) noexcept
   {
     SizeType size_custom{};
-    // vector size cannot be negative, and zero-size is also unusual, so it's treated as an error.
-    if (read(size_custom) == false || size_custom < 1) {
+    // vector size cannot be negative, so it's treated as an error. Zero size is well-defined for dynamic containers if
+    // they are not serialized with a given fixed size because it indicates an empty container.
+    if (read(size_custom) == false || size_custom < 0) {
       return false;
     }
     const auto size = static_cast<std::size_t>(size_custom);
@@ -584,8 +586,9 @@ public:
                            reinterpret_cast<std::uint8_t*>(&str_length) + sizeof(SizeType));
     }
 
-    // String length cannot be negative, and zero-length is also unusual, so it's treated as an error.
-    if (str_length < 1) {
+    // String length cannot be negative, so it's treated as an error. Zero length is well-defined for dynamic strings if
+    // they are not serialized with a given fixed length because it indicates an empty string.
+    if (str_length < 0) {
       return false;
     }
 
@@ -670,4 +673,4 @@ private:
 
 } // namespace bytepack
 
-#endif // BYTEPACK_HPP
+#endif // BYTEPACK_BYTEPACK_HPP
