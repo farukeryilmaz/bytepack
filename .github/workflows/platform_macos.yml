@@ -8,20 +8,34 @@ on:
 
 jobs:
   build:
-    name: macOS Latest
-    runs-on: macos-13
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS 15 (arm64)
+            runner: macos-15
+            architecture: arm64
+          - name: macOS 15 (x86_64)
+            runner: macos-15-intel
+            architecture: x86_64
+          - name: macOS 26 (arm64)
+            runner: macos-26
+            architecture: arm64
     steps:
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '14.3.1'
       - uses: actions/checkout@v4
         with:
           submodules: 'true'
-      - name: Configure
-        run: cmake -S . -B build -DBYTEPACK_BUILD_TESTS=ON
-      - name: Build
-        run: cmake --build build
-      - name: Run tests
+      - name: Show toolchain
         run: |
-          cd build
-          ctest --rerun-failed --output-on-failure
+          sw_vers
+          test "$(uname -m)" = "${{ matrix.architecture }}"
+          xcodebuild -version
+          cmake --version
+      - name: Configure
+        run: cmake -S . -B build -DBYTEPACK_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Run tests
+        run: ctest --test-dir build --rerun-failed --output-on-failure

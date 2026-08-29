@@ -30,7 +30,7 @@ Ready to contribute code or documentation? Great! Here's how:
    - Write comments for your code changes, especially in complex areas.
 6. Write appropriate tests for your code changes or update existing tests as necessary.
 7. Before submitting your code changes:
-   - Run all the tests to ensure they pass.
+   - Run all the tests to ensure they pass. See [Installation & Running Tests](doc/installation_and_test.md) for macOS, GNU/Linux, and Windows commands.
    - Make sure that there is no warning in `bytepack.hpp` file.
 8. Commit your changes (`git commit -m 'add some feature'`).
    - Use the present tense ("add feature" not "added feature").

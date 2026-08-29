@@ -126,9 +126,24 @@ Default buffer **endianness** is `big-endian`. If you want to configure as `litt
   - Example: `if (buffer) { /* Buffer is valid */ }`
 
 ## 4. Platform and Architecture Considerations
-Certain types in C++, such as `std::size_t`, `long int`, and `unsigned long int`, can vary in size across different architectures and platforms. For instance, `std::size_t` is 8 bytes on 64-bit systems but 4 bytes on 32-bit systems. Similarly, `long int` and `unsigned long int` are 8 bytes on Windows but 4 bytes on GNU/Linux systems, even on 64-bit platforms.
 
-For consistent cross-platform compatibility, it's recommended to use `fixed-width integer types` from `<cstdint>` (e.g., `std::uint32_t`, `std::int64_t`) to ensure predictable data sizes during serialization and deserialization regardless of the underlying platform or architecture. This allows you to define your serialization standards with confidence, knowing your data will be interpreted accurately and consistently across different environments.
+C++ does not assign the same width to every fundamental type on every platform. The common 64-bit data models illustrate why this matters for a serialized wire format:
+
+| Platform data model | `sizeof(long)` | `sizeof(std::size_t)` |
+| --- | ---: | ---: |
+| 64-bit Windows (LLP64) | 4 | 8 |
+| 64-bit macOS and GNU/Linux (LP64) | 8 | 8 |
+
+Widths can differ on other targets, especially 32-bit systems. Do not use `long`, `unsigned long`, `std::size_t`, pointer types, or other architecture-dependent values as protocol fields unless the protocol explicitly defines and validates their representation.
+
+For consistent cross-platform serialization:
+
+- Use fixed-width integer types from `<cstdint>`, such as `std::uint32_t` and `std::int64_t`.
+- Give serialized enumerations an explicit fixed-width underlying type, such as `enum class MessageType : std::uint8_t`.
+- Select the protocol's byte order explicitly. BytePack defaults to big-endian; use `bytepack::binary_stream<std::endian::little>` only when the protocol specifies little-endian.
+- Define the representation expected for floating-point values. Most supported systems use IEEE 754, but the C++ language does not make every floating-point wire representation portable by itself.
+- Treat `std::string` data as bytes and define a character encoding, such as UTF-8, at the protocol level. BytePack does not transcode text.
+- Avoid `wchar_t` in portable protocols because its width differs across platforms. BytePack does not support `std::wstring` or `std::wstring_view`.
 
 ## 5. Example Codes
 ### Simple Serialization - 1 (_default heap allocated buffer_)
@@ -144,7 +159,7 @@ stream.write(num);
 
 bytepack::buffer_view buffer = stream.data();
 char* dataPtr = buffer.as<char>();
-std::size_t dataSize = buffer.size(); // total serialized data size (44 byte).
+std::size_t dataSize = buffer.size(); // total serialized data size (44 bytes).
 ```
 
 ### Simple Deserialization - 1 (_buffer instantiated with external resource_)
@@ -175,8 +190,8 @@ bytepack::binary_stream stream(buffer);
 stream.write(intArr);
 stream.write(num);
 
-auto buffer = stream.data();
-auto size = buffer.size(); // total serialized data size (44 byte).
+auto serializedData = stream.data();
+auto size = serializedData.size(); // total serialized data size (44 bytes).
 ```
 
 ### Use Case - 1 (Network byte order - big-endian)
@@ -209,8 +224,7 @@ sensorData_.deserialize(deserializationStream);
 
 ### Use Case - 2 (Network byte order - big-endian)
 ```cpp
-```cpp
-enum class Type { TYPE_1, TYPE_2, TYPE_3, TYPE_4, TYPE_5 };
+enum class Type : std::uint8_t { TYPE_1, TYPE_2, TYPE_3, TYPE_4, TYPE_5 };
 
 struct GPSData {
     Type type;                    // Type of the data

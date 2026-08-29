@@ -67,21 +67,39 @@ sensorData_.deserialize(deserializationStream);
 ```
 
 ## Requirements
-- Implemented in `C++20` (uses concepts)
-- `CMake 3.12` or higher.
-- **GNU/Linux:** `GCC 10.1` or higher, `Clang 11` or higher.
-- **Windows:** `Visual Studio 2019 version 16.11.14` or higher.
-- **macOS:** `Xcode 14.3` or higher.
+
+BytePack is a header-only library. Using it requires only a C++20-compatible compiler; CMake and Catch2 are needed only to build the repository's tests.
+
+- **GNU/Linux:** GCC 10.1 or newer, or Clang 11 or newer.
+- **Windows:** Visual Studio 2019 version 16.11.14 or newer.
+- **macOS:** Xcode 14.3 or newer, or the corresponding/current Apple Command Line Tools. Full Xcode is not required for command-line builds.
+- **Tests:** CMake 3.12 or newer and the included Catch2 Git submodule.
+
+The continuous-integration test matrix covers:
+
+| Platform | Toolchain | Architecture |
+| --- | --- | --- |
+| Windows | MSVC on `windows-latest` | x86_64 |
+| GNU/Linux | GCC 12 and Clang 15 | x86_64 |
+| macOS 15 | Default AppleClang toolchain | arm64 |
+| macOS 15 | Default AppleClang toolchain | x86_64 |
+| macOS 26 | Default AppleClang toolchain | arm64 |
 
 ## Installation
-Simply clone the repository or [download](https://github.com/farukeryilmaz/bytepack/blob/main/include/bytepack/bytepack.hpp) the `bytepack.hpp` file and include it in your project.
+
+Simply clone the repository or [download](https://github.com/farukeryilmaz/bytepack/blob/main/include/bytepack/bytepack.hpp) the `bytepack.hpp` file and include it in your project. A regular clone is sufficient to use the library; clone recursively if you also want to run its tests.
+
 ```bash
 git clone https://github.com/farukeryilmaz/bytepack.git
 ```
+
 Include the library in your C++ project:
+
 ```cpp
 #include <bytepack/bytepack.hpp>
 ```
+
+See [Installation & Running Tests](doc/installation_and_test.md) for platform-specific prerequisites and complete macOS, GNU/Linux, and Windows build instructions.
 
 ## Design Philosophy
 BytePack is a C++ library crafted with a clear focus on simplicity and flexibility in binary serialization, primarily for network communication. It does not enforce any standardization, versioning, or the use of Interface Description Language (IDL) in serialization, providing you with the freedom to define your data structures and protocols. This approach is ideal when interfacing with systems where data formats and protocols are defined externally, as is often the case in standards like IEEE 12207, Interface Control Documents (ICD), Interface Design Description (IDD), and other industry-specific specifications. It allows you to seamlessly integrate BytePack into diverse projects, accommodating a wide range of requirements and compliance standards.
@@ -102,4 +120,4 @@ For any questions, feedback, or inquiries, you can also reach out to me directly
 ## License
 `BytePack` is licensed under the [MIT License](https://github.com/farukeryilmaz/bytepack/blob/main/LICENSE).
 
-**Note:** Example codes in the `examples` folder are provided for demonstration purposes only and is not covered under any specific license terms. Users are free to use it as they wish.
+**Note:** Example code in the `examples` folder is provided for demonstration purposes only and is not covered under any specific license terms. Users are free to use it as they wish.
