@@ -79,8 +79,8 @@ The continuous-integration test matrix covers:
 
 | Platform | Toolchain | Architecture |
 | --- | --- | --- |
-| Windows | MSVC on `windows-latest` | x86_64 |
-| GNU/Linux | GCC 12 and Clang 15 | x86_64 |
+| Windows Server 2025 | Visual Studio 2026 (MSVC) | x86_64 |
+| Ubuntu 24.04 | GCC 12 and Clang 18 | x86_64 |
 | macOS 15 | Default AppleClang toolchain | arm64 |
 | macOS 15 | Default AppleClang toolchain | x86_64 |
 | macOS 26 | Default AppleClang toolchain | arm64 |

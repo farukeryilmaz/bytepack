@@ -6,41 +6,42 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     name: ${{ matrix.config.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         config:
-          - name: "Ubuntu Latest with GCC 12"
-            compiler: gcc
-            compiler_ver: 12
-          - name: "Ubuntu Latests with Clang 15"
-            compiler: clang
-            compiler_ver: 15
+          - name: Ubuntu 24.04 with GCC 12
+            cc: gcc-12
+            cxx: g++-12
+          - name: Ubuntu 24.04 with Clang 18
+            cc: clang-18
+            cxx: clang++-18
+    env:
+      CC: ${{ matrix.config.cc }}
+      CXX: ${{ matrix.config.cxx }}
     steps:
-      - name: Prepare specific Clang version
-        if: ${{ matrix.config.compiler == 'clang' }}
-        run: |
-          sudo apt install clang-${{ matrix.config.compiler_ver}}
-          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-${{ matrix.config.compiler_ver}} 100
-          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-${{ matrix.config.compiler_ver}} 100
-      - name: Prepare specific GCC version
-        if: ${{ matrix.config.compiler == 'gcc' }}
-        run: |
-          sudo apt install g++-${{ matrix.config.compiler_ver}}
-          sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-${{ matrix.config.compiler_ver}} 100
-          sudo update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-${{ matrix.config.compiler_ver}} 100
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: 'true'
-      - name: Configure
-        run: cmake -S . -B build -DBYTEPACK_BUILD_TESTS=ON
-      - name: Build
-        run: cmake --build build
-      - name: Run tests
+          persist-credentials: false
+          submodules: true
+      - name: Show toolchain
         run: |
-          cd build
-          ctest --rerun-failed --output-on-failure
+          lsb_release --description --short
+          "$CC" --version
+          "$CXX" --version
+          cmake --version
+      - name: Configure
+        run: cmake -S . -B build -DBYTEPACK_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure

@@ -6,19 +6,25 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    name: Windows MSVC Latest
-    runs-on: windows-latest
+    name: Windows Server 2025 with Visual Studio 2026
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: 'true'
+          persist-credentials: false
+          submodules: true
+      - name: Show toolchain
+        run: cmake --version
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_CXX_STANDARD=20 -DBYTEPACK_BUILD_TESTS=ON
+        run: cmake -S . -B build -G "Visual Studio 18 2026" -A x64 -DBYTEPACK_BUILD_TESTS=ON
       - name: Build
-        run: cmake --build build --config Release
+        run: cmake --build build --config Release --parallel
       - name: Run tests
-        run: |
-          cd build
-          ctest -C Release --rerun-failed --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure
