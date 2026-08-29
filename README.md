@@ -73,7 +73,7 @@ BytePack is a header-only library. Using it requires only a C++20-compatible com
 - **GNU/Linux:** GCC 10.1 or newer, or Clang 11 or newer.
 - **Windows:** Visual Studio 2019 version 16.11.14 or newer.
 - **macOS:** Xcode 14.3 or newer, or the corresponding/current Apple Command Line Tools. Full Xcode is not required for command-line builds.
-- **Tests:** CMake 3.12 or newer and the included Catch2 Git submodule.
+- **Tests:** CMake 3.21 or newer and the included Catch2 Git submodule.
 
 The continuous-integration test matrix covers:
 
